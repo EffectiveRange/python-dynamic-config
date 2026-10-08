@@ -1,0 +1,116 @@
+import os
+import glob
+from pathlib import Path
+from dynamic_config import ConfigArgumentParser
+from argparse import Namespace
+from abc import ABC, abstractmethod
+from typing import Any
+from configparser import ConfigParser
+
+
+class ConfigSource(ABC):
+
+    @abstractmethod
+    def get_config(self) -> dict[str, Any]: ...
+
+    @abstractmethod
+    def get_namespace(self) -> Namespace: ...
+
+
+class DefaultSource(ConfigSource):
+
+    def __init__(self, parser: ConfigArgumentParser) -> None:
+        self._parser = parser
+
+    def get_config(self) -> dict[str, Any]:
+        return self._parser.get_defaults()
+
+    def get_namespace(self) -> Namespace:
+        defaults = self.get_config()
+        return Namespace(**defaults)
+
+
+class FileSource(ConfigSource):
+
+    def __init__(self, parser: ConfigArgumentParser, file_path: str | Path) -> None:
+        self._parser = parser
+        self._file_path = Path(file_path)
+
+    def get_config(self) -> dict[str, Any]:
+        file_parser = ConfigParser(interpolation=None)
+        file_parser.read(self._file_path)
+
+        config = {}
+        for section in file_parser.sections():
+            for key, value in file_parser.items(section):
+                config[key] = value
+
+        return config
+
+    def get_namespace(self) -> Namespace:
+        config = self.get_config()
+        return self._parser.parse_config(config)
+
+
+class DirectorySource(ConfigSource):
+
+    def __init__(
+        self,
+        parser: ConfigArgumentParser,
+        dir_path: str | Path,
+        pattern: str = "*.conf",
+        recursive: bool = False,
+    ) -> None:
+        self._parser = parser
+        self._dir_path = Path(dir_path)
+        self._pattern = pattern
+        self._recursive = recursive
+
+    def get_config(self) -> dict[str, Any]:
+        config = {}
+
+        file_paths = sorted(
+            glob.glob(str(self._dir_path / self._pattern), recursive=self._recursive)
+        )
+
+        for file_path in file_paths:
+            file_source = FileSource(self._parser, file_path)
+            file_config = file_source.get_config()
+            config.update(file_config)
+
+        return config
+
+    def get_namespace(self) -> Namespace:
+        config = self.get_config()
+        return self._parser.parse_config(config)
+
+
+class EnvironmentSource(ConfigSource):
+
+    def __init__(self, parser: ConfigArgumentParser, prefix: str = "") -> None:
+        self._parser = parser
+        self._prefix = prefix
+
+    def get_config(self) -> dict[str, Any]:
+        config = {
+            key.lower()[len(self._prefix):]: value
+            for key, value in os.environ.items()
+            if key.startswith(self._prefix)
+        }
+        return config
+
+    def get_namespace(self) -> Namespace:
+        config = self.get_config()
+        return self._parser.parse_config(config)
+
+
+class ArgumentSource(ConfigSource):
+
+    def __init__(self, parser: ConfigArgumentParser) -> None:
+        self._parser = parser
+
+    def get_config(self) -> dict[str, Any]:
+        return vars(self._parser.parse_args())
+
+    def get_namespace(self) -> Namespace:
+        return self._parser.parse_args()
