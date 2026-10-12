@@ -17,9 +17,9 @@ from dynamic_config.cache import ConfigCache
 class ConfigBuilder:
 
     def __init__(self, parser: ConfigArgumentParser):
+        self._cache = ConfigCache()
         self._parser = parser
         self._sources: list[ConfigSource] = []
-        self._cache = ConfigCache()
 
     def with_defaults(self) -> "ConfigBuilder":
         return self._add_source(DefaultSource(self._parser))
@@ -27,9 +27,7 @@ class ConfigBuilder:
     def with_file(self, file_path: str | Path) -> "ConfigBuilder":
         return self._add_source(FileSource(self._parser, file_path))
 
-    def with_directory(
-        self, dir_path: str | Path, pattern: str = "*.conf"
-    ) -> "ConfigBuilder":
+    def with_directory(self, dir_path: str | Path, pattern: str = "*.conf") -> "ConfigBuilder":
         return self._add_source(DirectorySource(self._parser, dir_path, pattern))
 
     def with_environment(self, prefix: str = "") -> "ConfigBuilder":
@@ -43,20 +41,20 @@ class ConfigBuilder:
         return self
 
     def build(self) -> "DynamicConfig":
-        return DynamicConfig(self._parser, self._sources, self._cache)
+        return DynamicConfig(self._cache, self._parser, self._sources)
 
 
 class DynamicConfig:
 
     def __init__(
         self,
+        cache: ConfigCache,
         parser: ConfigArgumentParser,
         sources: list[ConfigSource],
-        cache: ConfigCache,
     ) -> None:
+        self._cache = cache
         self._parser = parser
         self._sources = sources
-        self._cache = cache
 
     def get(self) -> Namespace:
         return self._cache
@@ -65,9 +63,16 @@ class DynamicConfig:
         return self._cache.snapshot()
 
     def refresh(self) -> None:
-        config: dict[str, Any] = {}
+        old_config = self._cache.snapshot().values()
+        new_config: dict[str, Any] = {}
 
         for source in self._sources:
-            config.update(source.get_config())
+            new_config.update(source.get_config())
 
-        self._cache.update(config)
+        update: dict[str, Any] = old_config
+
+        for key in self._parser.get_dynamic_arguments().keys():
+            if key in new_config:
+                update[key] = new_config[key]
+
+        self._cache.update(update)

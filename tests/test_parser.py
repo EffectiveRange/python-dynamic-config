@@ -151,15 +151,19 @@ class TestConfigArgumentParser(TestCase):
         print()
 
         # When
-        defaults = parser.dump_defaults(print_to_console=True)
+        defaults = parser.default_config(print_to_console=True)
 
         # Then
         self.assertEqual(
-            "[default]\n"
-            "test1 = value1\n"
-            "\n"
-            "[group1]\n"
-            "test2 = value2\n\n", defaults
+            """
+[default]
+test1 = value1
+
+[group1]
+test2 = value2
+
+""",
+            f"\n{defaults}",
         )
 
     def test_parse_config(self):
@@ -191,7 +195,7 @@ class TestConfigArgumentParser(TestCase):
             "regular_in_config_group": "also_ignored",
             "static_grouped": "new_static",
             "dynamic_grouped": "5",
-            "unknown": "ignored"
+            "unknown": "ignored",
         }
 
         # When

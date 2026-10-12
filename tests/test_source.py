@@ -25,10 +25,13 @@ class TestDefaultSource(TestCase):
         config = source.get_config()
 
         # Then
-        self.assertEqual({
-            "test1": "value",
-            "test2": 1234,
-        }, config)
+        self.assertEqual(
+            {
+                "test1": "value",
+                "test2": 1234,
+            },
+            config,
+        )
 
     def test_get_namespace(self):
         # Given
@@ -62,12 +65,7 @@ class TestFileSource(TestCase):
         config = source.get_config()
 
         # Then
-        self.assertEqual({
-            "test1": "value1",
-            "test2": "0",
-            "test3": "true",
-            "test4": "1111"
-        }, config)
+        self.assertEqual({"test1": "value1", "test2": "0", "test3": "true", "test4": "1111"}, config)
 
     def test_get_namespace(self):
         # Given
@@ -83,12 +81,7 @@ class TestFileSource(TestCase):
 
         # Then
         self.assertEqual(config, mock_config)
-        parser.parse_config.assert_called_with({
-            "test1": "value1",
-            "test2": "0",
-            "test3": "true",
-            "test4": "1111"
-        })
+        parser.parse_config.assert_called_with({"test1": "value1", "test2": "0", "test3": "true", "test4": "1111"})
 
 
 class TestDirectorySource(TestCase):
@@ -104,14 +97,17 @@ class TestDirectorySource(TestCase):
         config = source.get_config()
 
         # Then
-        self.assertEqual({
-            "test1": "another_value",
-            "test2": "5678",
-            "test3": "false",
-            "test4": "5678",
-            "test5": "false",
-            "test6": "another_value"
-        }, config)
+        self.assertEqual(
+            {
+                "test1": "another_value",
+                "test2": "5678",
+                "test3": "false",
+                "test4": "5678",
+                "test5": "false",
+                "test6": "another_value",
+            },
+            config,
+        )
 
     def test_get_namespace(self):
         # Given
@@ -127,14 +123,16 @@ class TestDirectorySource(TestCase):
 
         # Then
         self.assertEqual(config, mock_config)
-        parser.parse_config.assert_called_with({
-            "test1": "another_value",
-            "test2": "5678",
-            "test3": "false",
-            "test4": "5678",
-            "test5": "false",
-            "test6": "another_value"
-        })
+        parser.parse_config.assert_called_with(
+            {
+                "test1": "another_value",
+                "test2": "5678",
+                "test3": "false",
+                "test4": "5678",
+                "test5": "false",
+                "test6": "another_value",
+            }
+        )
 
 
 class TestEnvironmentSource(TestCase):
@@ -154,12 +152,7 @@ class TestEnvironmentSource(TestCase):
         config = source.get_config()
 
         # Then
-        self.assertEqual({
-            "test1": "value1",
-            "test2": "0",
-            "test3": "true",
-            "test4": "1111"
-        }, config)
+        self.assertEqual({"test1": "value1", "test2": "0", "test3": "true", "test4": "1111"}, config)
 
     def test_get_namespace(self):
         # Given
@@ -179,12 +172,7 @@ class TestEnvironmentSource(TestCase):
 
         # Then
         self.assertEqual(config, mock_config)
-        parser.parse_config.assert_called_with({
-            "test1": "value1",
-            "test2": "0",
-            "test3": "true",
-            "test4": "1111"
-        })
+        parser.parse_config.assert_called_with({"test1": "value1", "test2": "0", "test3": "true", "test4": "1111"})
 
 
 class TestArgumentSource(TestCase):
@@ -199,10 +187,7 @@ class TestArgumentSource(TestCase):
         config = source.get_config()
 
         # Then
-        self.assertEqual({
-            "test1": "value1",
-            "test2": 0
-        }, config)
+        self.assertEqual({"test1": "value1", "test2": 0}, config)
 
     def test_get_namespace(self):
         # Given

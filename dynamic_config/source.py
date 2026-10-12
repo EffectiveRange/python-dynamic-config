@@ -69,9 +69,7 @@ class DirectorySource(ConfigSource):
     def get_config(self) -> dict[str, Any]:
         config = {}
 
-        file_paths = sorted(
-            glob.glob(str(self._dir_path / self._pattern), recursive=self._recursive)
-        )
+        file_paths = sorted(glob.glob(str(self._dir_path / self._pattern), recursive=self._recursive))
 
         for file_path in file_paths:
             file_source = FileSource(self._parser, file_path)
@@ -93,9 +91,7 @@ class EnvironmentSource(ConfigSource):
 
     def get_config(self) -> dict[str, Any]:
         config = {
-            key.lower()[len(self._prefix):]: value
-            for key, value in os.environ.items()
-            if key.startswith(self._prefix)
+            key.lower()[len(self._prefix) :]: value for key, value in os.environ.items() if key.startswith(self._prefix)
         }
         return config
 
