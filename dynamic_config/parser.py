@@ -9,52 +9,56 @@ from argparse import (
     Namespace,
 )
 from configparser import ConfigParser
+from dataclasses import dataclass
 from io import StringIO
-from typing import Any, cast
+from typing import Any
 
 
-class ConfigAction(Action):
-
-    def __init__(self, *args: Any, dynamic: bool = False, **kwargs: Any) -> None:
-        super().__init__(*args, **kwargs)
-        self.dynamic = dynamic
-        self.container: _ArgumentGroup | None = None
-
-    def __call__(
-        self,
-        parser: ArgumentParser,
-        namespace: Namespace,
-        values: Any,
-        option_string: str | None = None,
-    ) -> None:
-        setattr(namespace, self.dest, values)
+@dataclass
+class ConfigArgument:
+    dynamic: bool
+    action: Action
+    container: "ConfigContainer"
 
 
 class ConfigContainer(_ActionsContainer):
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        super().__init__(*args, **kwargs)
+        if not hasattr(self, "_actions"):
+            super().__init__(*args, **kwargs)
         self.register("type", None, lambda x: x)
+        self.title = args[0] if args else kwargs.get("title", "")
+        self._arguments: dict[str, ConfigArgument] = {}
 
-    def add_config_argument(self, *args: Any, dynamic: bool = False, **kwargs: Any) -> ConfigAction:
-        kwargs["action"] = ConfigAction
-        kwargs["dynamic"] = dynamic
-        return cast(ConfigAction, self.add_argument(*args, **kwargs))
+    def add_config_argument(self, *args: Any, dynamic: bool = False, **kwargs: Any) -> ConfigArgument:
+        action = self.add_argument(*args, **kwargs)
+        argument = ConfigArgument(action=action, dynamic=dynamic, container=self)
+        self._arguments[action.dest] = argument
+        return argument
 
-    def add_config_argument_group(self, *args: Any, **kwargs: Any) -> "ConfigArgumentGroup":
+    def add_config_group(self, *args: Any, **kwargs: Any) -> "ConfigArgumentGroup":
         group = ConfigArgumentGroup(self, *args, **kwargs)
         self._action_groups.append(group)
         return group
 
-    def get_config_arguments(self) -> dict[str, ConfigAction]:
-        return {action.dest: action for action in self._actions if isinstance(action, ConfigAction)}
+    def get_config_groups(self) -> list["ConfigArgumentGroup"]:
+        return [group for group in self._action_groups if isinstance(group, ConfigArgumentGroup)]
 
-    def get_dynamic_arguments(self) -> dict[str, ConfigAction]:
+    def get_config_arguments(self) -> dict[str, ConfigArgument]:
+        return self._arguments
+
+    def get_dynamic_arguments(self) -> dict[str, ConfigArgument]:
         return {dest: action for dest, action in self.get_config_arguments().items() if action.dynamic}
 
 
 class ConfigArgumentGroup(_ArgumentGroup, ConfigContainer):
-    pass
+    def __init__(self, container: ConfigContainer, *args: Any, **kwargs: Any) -> None:
+        update = kwargs.setdefault
+        update("conflict_handler", container.conflict_handler)
+        update("prefix_chars", container.prefix_chars)
+        update("argument_default", container.argument_default)
+        _ArgumentGroup.__init__(self, container, *args, **kwargs)
+        ConfigContainer.__init__(self, *args, **kwargs)
 
 
 class ConfigArgumentParser(ArgumentParser, ConfigContainer):
@@ -63,7 +67,7 @@ class ConfigArgumentParser(ArgumentParser, ConfigContainer):
         kwargs.__setitem__("argument_default", SUPPRESS)
         kwargs.setdefault("formatter_class", ArgumentDefaultsHelpFormatter)
         ArgumentParser.__init__(self, *args, **kwargs)
-        self._default_section = default_section
+        ConfigContainer.__init__(self, default_section, *args, **kwargs)
 
     def get_defaults(self) -> dict[str, Any]:
         defaults = self._get_defaults(self)
@@ -76,18 +80,10 @@ class ConfigArgumentParser(ArgumentParser, ConfigContainer):
     def default_config(self, print_to_console: bool = False) -> str:
         config = ConfigParser()
 
-        for action in self.get_config_arguments().values():
-            if action.default not in (SUPPRESS, None):
-                if action.container and action.container.title:
-                    section = action.container.title
+        config = self._get_config_defaults(config, self)
 
-                    if section == "options":
-                        section = self._default_section
-
-                    if section not in config:
-                        config[section] = {}
-
-                    config[section][action.dest] = str(action.default)
+        for group in self.get_config_groups():
+            config = self._get_config_defaults(config, group)
 
         with StringIO() as stream:
             config.write(stream)
@@ -100,22 +96,26 @@ class ConfigArgumentParser(ArgumentParser, ConfigContainer):
 
     def parse_config(self, config: dict[str, Any]) -> Namespace:
         args = []
+        config_arguments = list(self.get_config_arguments().values())
 
-        for action in self.get_config_arguments().values():
-            if action.dest in config:
-                value = config[action.dest]
+        for group in self.get_config_groups():
+            config_arguments.extend(group.get_config_arguments().values())
 
-                if isinstance(action, BooleanOptionalAction):
+        for argument in config_arguments:
+            if argument.action.dest in config:
+                value = config[argument.action.dest]
+
+                if isinstance(argument.action, BooleanOptionalAction):
                     value = str(value).lower()
 
                     if value in ("true", "yes", "1", "on"):
-                        args.append(action.option_strings[0])
+                        args.append(argument.action.option_strings[0])
                     elif value in ("false", "no", "0", "off"):
-                        args.append(action.option_strings[1])
+                        args.append(argument.action.option_strings[1])
                     else:
                         raise ValueError(f"Invalid boolean value: {value}")
                 else:
-                    option = action.option_strings[0]
+                    option = argument.action.option_strings[0]
                     args.extend([option, value])
 
         return self.parse_args(args)
@@ -128,3 +128,15 @@ class ConfigArgumentParser(ArgumentParser, ConfigContainer):
                 default[action.dest] = action.default
 
         return default
+
+    def _get_config_defaults(self, config: ConfigParser, container: ConfigContainer) -> ConfigParser:
+        for argument in container._arguments.values():
+            if argument.action.default not in (SUPPRESS, None):
+                section = container.title
+
+                if section not in config:
+                    config[section] = {}
+
+                config[section][argument.action.dest] = str(argument.action.default)
+
+        return config

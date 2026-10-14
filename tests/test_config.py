@@ -11,7 +11,7 @@ from dynamic_config import (
     ArgumentSource,
     ConfigCache,
 )
-from dynamic_config.parser import ConfigAction
+from dynamic_config.parser import ConfigArgument
 from dynamic_config.source import ConfigSource
 
 
@@ -138,8 +138,9 @@ class TestDynamicConfig(TestCase):
         }
         parser = MagicMock(spec=ConfigArgumentParser)
         parser.get_dynamic_arguments.return_value = {
-            "test2": MagicMock(spec=ConfigAction),
-            "test4": MagicMock(spec=ConfigAction),
+            "test2": MagicMock(spec=ConfigArgument),
+            "test4": MagicMock(spec=ConfigArgument),
+            "test5": MagicMock(spec=ConfigArgument),
         }
         source1 = MagicMock(spec=ConfigSource)
         source1.get_config.return_value = {
