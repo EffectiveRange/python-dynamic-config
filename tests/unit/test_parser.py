@@ -1,11 +1,21 @@
 from argparse import BooleanOptionalAction
 from unittest import TestCase
 
+from context_logger import setup_logging
+
 from dynamic_config import ConfigArgumentParser, ConfigArgument
 from dynamic_config.parser import ConfigArgumentGroup, ConfigContainer
+from tests.utils import TEST_APPLICATION_NAME
 
 
 class TestConfigContainer(TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        setup_logging(TEST_APPLICATION_NAME, 'DEBUG', warn_on_overwrite=False)
+
+    def setUp(self):
+        print()
 
     def test_add_dynamic_config_argument(self):
         # Given
@@ -100,6 +110,13 @@ class TestConfigContainer(TestCase):
 
 class TestConfigArgumentParser(TestCase):
 
+    @classmethod
+    def setUpClass(cls):
+        setup_logging(TEST_APPLICATION_NAME, 'DEBUG', warn_on_overwrite=False)
+
+    def setUp(self):
+        print()
+
     def test_get_defaults_includes_group_actions(self):
         # Given
         parser = ConfigArgumentParser(default_section="default")
@@ -132,7 +149,6 @@ class TestConfigArgumentParser(TestCase):
         parser.add_config_argument("--test1", default="value1")
         group = parser.add_config_group("group1")
         group.add_config_argument("--test2", default="value2")
-        print()
 
         # When
         defaults = parser.default_config(print_to_console=True)

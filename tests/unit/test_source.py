@@ -2,11 +2,20 @@ from argparse import ArgumentParser, Namespace
 import os
 from unittest import TestCase
 from unittest.mock import MagicMock
+
+from context_logger import setup_logging
 from dynamic_config import Parser, DefaultSource, FileSource, ArgumentSource, DirectorySource, EnvironmentSource
-from tests.utils import TEST_RESOURCE_ROOT
+from tests.utils import TEST_APPLICATION_NAME, TEST_RESOURCE_ROOT
 
 
 class TestDefaultSource(TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        setup_logging(TEST_APPLICATION_NAME, 'DEBUG', warn_on_overwrite=False)
+
+    def setUp(self):
+        print()
 
     def test_get_config(self):
         # Given
@@ -51,10 +60,17 @@ class TestDefaultSource(TestCase):
 
 class TestFileSource(TestCase):
 
+    @classmethod
+    def setUpClass(cls):
+        setup_logging(TEST_APPLICATION_NAME, 'DEBUG', warn_on_overwrite=False)
+
+    def setUp(self):
+        print()
+
     def test_get_config(self):
         # Given
         parser = MagicMock(spec=Parser)
-        file_path = f"{TEST_RESOURCE_ROOT}/config/test-config.conf"
+        file_path = TEST_RESOURCE_ROOT / "config" / "test-config.conf"
 
         source = FileSource(parser, file_path)
 
@@ -69,7 +85,7 @@ class TestFileSource(TestCase):
         parser = MagicMock(spec=Parser)
         mock_config = MagicMock(spec=Namespace)
         parser.parse_config.return_value = mock_config
-        file_path = f"{TEST_RESOURCE_ROOT}/config/test-config.conf"
+        file_path = TEST_RESOURCE_ROOT / "config" / "test-config.conf"
 
         source = FileSource(parser, file_path)
 
@@ -83,10 +99,17 @@ class TestFileSource(TestCase):
 
 class TestDirectorySource(TestCase):
 
+    @classmethod
+    def setUpClass(cls):
+        setup_logging(TEST_APPLICATION_NAME, 'DEBUG', warn_on_overwrite=False)
+
+    def setUp(self):
+        print()
+
     def test_get_config(self):
         # Given
         parser = MagicMock(spec=Parser)
-        dir_path = f"{TEST_RESOURCE_ROOT}/config/test-config.d"
+        dir_path = TEST_RESOURCE_ROOT / "config" / "test-config.d"
 
         source = DirectorySource(parser, dir_path, pattern="*.conf")
 
@@ -111,7 +134,7 @@ class TestDirectorySource(TestCase):
         parser = MagicMock(spec=Parser)
         mock_config = MagicMock(spec=Namespace)
         parser.parse_config.return_value = mock_config
-        dir_path = f"{TEST_RESOURCE_ROOT}/config/test-config.d"
+        dir_path = TEST_RESOURCE_ROOT / "config" / "test-config.d"
 
         source = DirectorySource(parser, dir_path, pattern="*.conf")
 
@@ -133,6 +156,13 @@ class TestDirectorySource(TestCase):
 
 
 class TestEnvironmentSource(TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        setup_logging(TEST_APPLICATION_NAME, 'DEBUG', warn_on_overwrite=False)
+
+    def setUp(self):
+        print()
 
     def test_get_config(self):
         # Given
@@ -173,6 +203,13 @@ class TestEnvironmentSource(TestCase):
 
 
 class TestArgumentSource(TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        setup_logging(TEST_APPLICATION_NAME, 'DEBUG', warn_on_overwrite=False)
+
+    def setUp(self):
+        print()
 
     def test_get_config(self):
         # Given

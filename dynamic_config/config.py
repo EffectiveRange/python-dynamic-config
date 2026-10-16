@@ -1,5 +1,10 @@
+# SPDX-FileCopyrightText: 2024 Ferenc Nandor Janky <ferenj@effective-range.com>
+# SPDX-FileCopyrightText: 2024 Attila Gombos <attila.gombos@effective-range.com>
+# SPDX-License-Identifier: MIT
+
 from argparse import Namespace
 from pathlib import Path
+from context_logger import get_logger
 from watchdog.observers import Observer
 from typing import Any
 from abc import ABC, abstractmethod
@@ -15,7 +20,8 @@ from dynamic_config import (
     ArgumentSource,
     Cache,
     ConfigCache,
-    ConfigWatcher, Watcher
+    ConfigWatcher,
+    Watcher,
 )
 
 
@@ -49,11 +55,11 @@ class ConfigBuilder:
         return self._add_source(DefaultSource(self._parser))
 
     def with_file(self, file_path: str | Path) -> "ConfigBuilder":
-        self._watcher.register(str(file_path))
+        self._watcher.watch(str(file_path))
         return self._add_source(FileSource(self._parser, file_path))
 
     def with_directory(self, dir_path: str | Path, pattern: str = "*.conf") -> "ConfigBuilder":
-        self._watcher.register(str(dir_path))
+        self._watcher.watch(str(dir_path))
         return self._add_source(DirectorySource(self._parser, dir_path, pattern))
 
     def with_environment(self, prefix: str = "") -> "ConfigBuilder":
@@ -83,11 +89,15 @@ class DynamicConfig(Config):
         self._parser = parser
         self._watcher = watcher
         self._sources = sources
+        self.log = get_logger(type(self).__name__)
 
     def initialize(self) -> None:
+        self.refresh()
+        self._watcher.register(self._on_config_file_change)
         self._watcher.start()
 
     def destroy(self) -> None:
+        self._watcher.deregister(self._on_config_file_change)
         self._watcher.stop()
         self._cache.clear()
 
@@ -111,3 +121,6 @@ class DynamicConfig(Config):
                 update[key] = new_config[key]
 
         self._cache.update(update)
+
+    def _on_config_file_change(self, config_path: str) -> None:
+        self.refresh()

@@ -1,10 +1,20 @@
 from argparse import Namespace
 from unittest import TestCase
 
+from context_logger import setup_logging
+
 from dynamic_config.cache import ConfigCache, ConfigSnapshot
+from tests.utils import TEST_APPLICATION_NAME
 
 
 class TestConfigSnapshot(TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        setup_logging(TEST_APPLICATION_NAME, 'DEBUG', warn_on_overwrite=False)
+
+    def setUp(self):
+        print()
 
     def test_get(self):
         # Given
@@ -75,6 +85,13 @@ class TestConfigSnapshot(TestCase):
 
 
 class TestConfigCache(TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        setup_logging(TEST_APPLICATION_NAME, 'DEBUG', warn_on_overwrite=False)
+
+    def setUp(self):
+        print()
 
     def test_get(self):
         # Given

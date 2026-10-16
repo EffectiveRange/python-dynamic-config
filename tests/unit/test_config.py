@@ -1,5 +1,7 @@
 from unittest import TestCase
 from unittest.mock import MagicMock
+
+from context_logger import setup_logging
 from dynamic_config import (
     ConfigSource,
     ConfigArgument,
@@ -15,9 +17,17 @@ from dynamic_config import (
     ConfigCache,
     Watcher,
 )
+from tests.utils import TEST_APPLICATION_NAME
 
 
 class TestConfigBuilder(TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        setup_logging(TEST_APPLICATION_NAME, 'DEBUG', warn_on_overwrite=False)
+
+    def setUp(self):
+        print()
 
     def test_with_defaults(self):
         # Given
@@ -105,6 +115,44 @@ class TestConfigBuilder(TestCase):
 
 
 class TestDynamicConfig(TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        setup_logging(TEST_APPLICATION_NAME, 'DEBUG', warn_on_overwrite=False)
+
+    def setUp(self):
+        print()
+
+    def test_initialize(self):
+        # Given
+        cache = MagicMock(spec=ConfigCache)
+        parser = MagicMock(spec=Parser)
+        watcher = MagicMock(spec=Watcher)
+        sources: list[ConfigSource] = []
+        config = DynamicConfig(cache, parser, watcher, sources)
+
+        # When
+        config.initialize()
+
+        # Then
+        watcher.register.assert_called_once_with(config._on_config_file_change)
+        watcher.start.assert_called_once()
+
+    def test_destroy(self):
+        # Given
+        cache = MagicMock(spec=ConfigCache)
+        parser = MagicMock(spec=Parser)
+        watcher = MagicMock(spec=Watcher)
+        sources: list[ConfigSource] = []
+        config = DynamicConfig(cache, parser, watcher, sources)
+
+        # When
+        config.destroy()
+
+        # Then
+        watcher.stop.assert_called_once()
+        watcher.deregister.assert_called_once_with(config._on_config_file_change)
+        cache.clear.assert_called_once()
 
     def test_get(self):
         # Given

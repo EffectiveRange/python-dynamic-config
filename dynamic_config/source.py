@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2024 Ferenc Nandor Janky <ferenj@effective-range.com>
+# SPDX-FileCopyrightText: 2024 Attila Gombos <attila.gombos@effective-range.com>
+# SPDX-License-Identifier: MIT
+
 import os
 import glob
 from pathlib import Path
@@ -6,6 +10,7 @@ from argparse import ArgumentParser, Namespace
 from abc import ABC, abstractmethod
 from typing import Any
 from configparser import ConfigParser
+from context_logger import get_logger
 
 
 class ConfigSource(ABC):
@@ -21,8 +26,10 @@ class DefaultSource(ConfigSource):
 
     def __init__(self, parser: Parser) -> None:
         self._parser = parser
+        self.log = get_logger(type(self).__name__)
 
     def get_config(self) -> dict[str, Any]:
+        self.log.debug("Fetching default configuration")
         return self._parser.get_defaults()
 
     def get_namespace(self) -> Namespace:
@@ -35,8 +42,11 @@ class FileSource(ConfigSource):
     def __init__(self, parser: Parser, file_path: str | Path) -> None:
         self._parser = parser
         self._file_path = Path(file_path)
+        self.log = get_logger(type(self).__name__)
 
     def get_config(self) -> dict[str, Any]:
+        self.log.debug("Fetching configuration from file", file=self._file_path)
+
         file_parser = ConfigParser(interpolation=None)
         file_parser.read(self._file_path)
 
@@ -65,8 +75,11 @@ class DirectorySource(ConfigSource):
         self._dir_path = Path(dir_path)
         self._pattern = pattern
         self._recursive = recursive
+        self.log = get_logger(type(self).__name__)
 
     def get_config(self) -> dict[str, Any]:
+        self.log.debug("Fetching configuration from directory", dir=self._dir_path, pattern=self._pattern)
+
         config = {}
 
         file_paths = sorted(glob.glob(str(self._dir_path / self._pattern), recursive=self._recursive))
@@ -88,8 +101,11 @@ class EnvironmentSource(ConfigSource):
     def __init__(self, parser: Parser, prefix: str = "") -> None:
         self._parser = parser
         self._prefix = prefix
+        self.log = get_logger(type(self).__name__)
 
     def get_config(self) -> dict[str, Any]:
+        self.log.debug("Fetching configuration from environment", prefix=self._prefix)
+
         config = {
             key.lower()[len(self._prefix) :]: value for key, value in os.environ.items() if key.startswith(self._prefix)
         }
@@ -104,8 +120,11 @@ class ArgumentSource(ConfigSource):
 
     def __init__(self, parser: ArgumentParser) -> None:
         self._parser = parser
+        self.log = get_logger(type(self).__name__)
 
     def get_config(self) -> dict[str, Any]:
+        self.log.debug("Fetching configuration from command-line arguments")
+
         return vars(self._parser.parse_args())
 
     def get_namespace(self) -> Namespace:
