@@ -1,3 +1,4 @@
+from argparse import Namespace
 from unittest import TestCase
 
 from dynamic_config.cache import ConfigCache, ConfigSnapshot
@@ -30,6 +31,37 @@ class TestConfigSnapshot(TestCase):
         # When / Then
         with self.assertRaises(AttributeError):
             del snapshot.key
+
+    def test_equality(self):
+        # Given
+        snapshot = ConfigSnapshot({"key": "value"})
+        namespace = Namespace(key="value")
+
+        # When
+        result = snapshot == namespace
+
+        # Then
+        self.assertTrue(result)
+
+    def test_equality_when_not_namespace(self):
+        # Given
+        snapshot = ConfigSnapshot({"key": "value"})
+
+        # When
+        result = snapshot == {"key": "value"}
+
+        # Then
+        self.assertFalse(result)
+
+    def test_contains(self):
+        # Given
+        snapshot = ConfigSnapshot({"key": "value"})
+
+        # When
+        result = "key" in snapshot
+
+        # Then
+        self.assertTrue(result)
 
     def test_values_method(self):
         # Given
@@ -69,6 +101,37 @@ class TestConfigCache(TestCase):
         # When / Then
         with self.assertRaises(AttributeError):
             cache.key = "new_value"
+
+    def test_equality(self):
+        # Given
+        cache = ConfigCache({"key": "value"})
+        namespace = Namespace(key="value")
+
+        # When
+        result = cache == namespace
+
+        # Then
+        self.assertTrue(result)
+
+    def test_equality_when_not_namespace(self):
+        # Given
+        cache = ConfigCache({"key": "value"})
+
+        # When
+        result = cache == {"key": "value"}
+
+        # Then
+        self.assertFalse(result)
+
+    def test_contains(self):
+        # Given
+        cache = ConfigCache({"key": "value"})
+
+        # When
+        result = "key" in cache
+
+        # Then
+        self.assertTrue(result)
 
     def test_snapshot(self):
         # Given

@@ -1,22 +1,36 @@
 from argparse import Namespace
 from pathlib import Path
 from typing import Any
+from abc import ABC, abstractmethod
 
 from dynamic_config import (
     ConfigSource,
-    ConfigArgumentParser,
+    Parser,
     DefaultSource,
     EnvironmentSource,
     FileSource,
     DirectorySource,
     ArgumentSource,
+    Cache,
+    ConfigCache,
 )
-from dynamic_config.cache import ConfigCache
+
+
+class Config(ABC):
+
+    @abstractmethod
+    def get(self) -> Namespace: ...
+
+    @abstractmethod
+    def snapshot(self) -> Namespace: ...
+
+    @abstractmethod
+    def refresh(self) -> None: ...
 
 
 class ConfigBuilder:
 
-    def __init__(self, parser: ConfigArgumentParser):
+    def __init__(self, parser: Parser):
         self._cache = ConfigCache()
         self._parser = parser
         self._sources: list[ConfigSource] = []
@@ -44,12 +58,12 @@ class ConfigBuilder:
         return DynamicConfig(self._cache, self._parser, self._sources)
 
 
-class DynamicConfig:
+class DynamicConfig(Config):
 
     def __init__(
         self,
-        cache: ConfigCache,
-        parser: ConfigArgumentParser,
+        cache: Cache,
+        parser: Parser,
         sources: list[ConfigSource],
     ) -> None:
         self._cache = cache
@@ -59,7 +73,7 @@ class DynamicConfig:
     def get(self) -> Namespace:
         return self._cache
 
-    def get_snapshot(self) -> Namespace:
+    def snapshot(self) -> Namespace:
         return self._cache.snapshot()
 
     def refresh(self) -> None:

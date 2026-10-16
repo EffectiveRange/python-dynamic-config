@@ -43,56 +43,62 @@ class TestConfigContainer(TestCase):
         self.assertFalse(argument.dynamic)
         self.assertEqual(container._arguments["test"], argument)
 
+    def test_add_config_group(self):
+        # Given
+        container = ConfigContainer(None, "-", None, "error")
+
+        # When
+        group = container.add_config_group("group")
+
+        # Then
+        self.assertIsInstance(group, ConfigArgumentGroup)
+        self.assertEqual(group.title, "group")
+        self.assertTrue(group in container._action_groups)
+
+    def test_get_config_groups(self):
+        # Given
+        container = ConfigContainer(None, "-", None, "error")
+        group1 = container.add_config_group("group1")
+        group2 = container.add_config_group("group2")
+
+        # When
+        groups = container.get_config_groups()
+
+        # Then
+        self.assertIn(group1, groups)
+        self.assertIn(group2, groups)
+
+    def test_get_config_arguments(self):
+        # Given
+        container = ConfigContainer(None, "-", None, "error")
+        arg1 = container.add_config_argument("--test1", dynamic=True)
+        arg2 = container.add_config_argument("--test2", dynamic=False)
+
+        # When
+        arguments = container.get_config_arguments()
+
+        # Then
+        self.assertIn("test1", arguments)
+        self.assertIn("test2", arguments)
+        self.assertEqual(arguments["test1"], arg1)
+        self.assertEqual(arguments["test2"], arg2)
+
+    def test_get_dynamic_arguments(self):
+        # Given
+        container = ConfigContainer(None, "-", None, "error")
+        arg1 = container.add_config_argument("--test1", dynamic=True)
+        arg2 = container.add_config_argument("--test2", dynamic=False)
+
+        # When
+        dynamic_arguments = container.get_dynamic_arguments()
+
+        # Then
+        self.assertIn("test1", dynamic_arguments)
+        self.assertNotIn("test2", dynamic_arguments)
+        self.assertEqual(dynamic_arguments["test1"], arg1)
+
 
 class TestConfigArgumentParser(TestCase):
-
-    def test_add_argument(self):
-        # Given
-        parser = ConfigArgumentParser(default_section="default")
-
-        # When
-        parser.add_argument("--test")
-
-        # Then
-        self.assertTrue(any(action.dest == "test" for action in parser._actions))
-
-    def test_add_config_argument(self):
-        # Given
-        parser = ConfigArgumentParser(default_section="default")
-
-        # When
-        parser.add_config_argument("--test")
-
-        # Then
-        argument: ConfigArgument = next(
-            arg for arg in parser.get_config_arguments().values() if isinstance(arg, ConfigArgument)
-        )
-        self.assertEqual(argument.action.dest, "test")
-        self.assertFalse(argument.dynamic)
-
-    def test_add_argument_group(self):
-        # Given
-        parser = ConfigArgumentParser(default_section="default")
-
-        # When
-        group = parser.add_argument_group("group")
-
-        # Then
-        self.assertEqual(group.title, "group")
-        self.assertIsInstance(group, _ArgumentGroup)
-        self.assertTrue(group in parser._action_groups)
-
-    def test_add_config_argument_group(self):
-        # Given
-        parser = ConfigArgumentParser(default_section="default")
-
-        # When
-        group = parser.add_config_group("group")
-
-        # Then
-        self.assertEqual(group.title, "group")
-        self.assertIsInstance(group, ConfigArgumentGroup)
-        self.assertTrue(group in parser._action_groups)
 
     def test_get_defaults_includes_group_actions(self):
         # Given

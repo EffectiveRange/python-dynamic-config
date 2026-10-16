@@ -1,7 +1,7 @@
 import os
 import glob
 from pathlib import Path
-from dynamic_config import ConfigArgumentParser
+from dynamic_config import Parser
 from argparse import Namespace
 from abc import ABC, abstractmethod
 from typing import Any
@@ -19,7 +19,7 @@ class ConfigSource(ABC):
 
 class DefaultSource(ConfigSource):
 
-    def __init__(self, parser: ConfigArgumentParser) -> None:
+    def __init__(self, parser: Parser) -> None:
         self._parser = parser
 
     def get_config(self) -> dict[str, Any]:
@@ -32,7 +32,7 @@ class DefaultSource(ConfigSource):
 
 class FileSource(ConfigSource):
 
-    def __init__(self, parser: ConfigArgumentParser, file_path: str | Path) -> None:
+    def __init__(self, parser: Parser, file_path: str | Path) -> None:
         self._parser = parser
         self._file_path = Path(file_path)
 
@@ -56,7 +56,7 @@ class DirectorySource(ConfigSource):
 
     def __init__(
         self,
-        parser: ConfigArgumentParser,
+        parser: Parser,
         dir_path: str | Path,
         pattern: str = "*.conf",
         recursive: bool = False,
@@ -85,7 +85,7 @@ class DirectorySource(ConfigSource):
 
 class EnvironmentSource(ConfigSource):
 
-    def __init__(self, parser: ConfigArgumentParser, prefix: str = "") -> None:
+    def __init__(self, parser: Parser, prefix: str = "") -> None:
         self._parser = parser
         self._prefix = prefix
 
@@ -102,7 +102,7 @@ class EnvironmentSource(ConfigSource):
 
 class ArgumentSource(ConfigSource):
 
-    def __init__(self, parser: ConfigArgumentParser) -> None:
+    def __init__(self, parser: Parser) -> None:
         self._parser = parser
 
     def get_config(self) -> dict[str, Any]:

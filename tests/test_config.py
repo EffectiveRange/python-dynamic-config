@@ -121,7 +121,7 @@ class TestDynamicConfig(TestCase):
         config = DynamicConfig(cache, MagicMock(spec=ConfigArgumentParser), [])
 
         # When
-        result = config.get_snapshot()
+        result = config.snapshot()
 
         # Then
         cache.snapshot.assert_called_once()

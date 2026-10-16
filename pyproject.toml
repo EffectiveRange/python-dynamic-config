@@ -18,6 +18,7 @@ test = [
     "pytest>=7.0",
     "pytest-console-scripts",
     "pytest-coverage",
+    "coverage>=7.2",
 ]
 
 lint = [
@@ -29,6 +30,7 @@ dev = [
     "pytest>=7.0",
     "pytest-console-scripts",
     "pytest-coverage",
+    "coverage>=7.2",
     "flake8",
     "mypy",
     "black"

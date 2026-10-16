@@ -2,9 +2,7 @@ from argparse import Namespace
 import os
 from unittest import TestCase
 from unittest.mock import MagicMock
-from dynamic_config import ConfigArgumentParser
-from dynamic_config import DefaultSource
-from dynamic_config import FileSource
+from dynamic_config import Parser, DefaultSource, FileSource
 from dynamic_config.source import ArgumentSource, DirectorySource, EnvironmentSource
 from tests.utils import TEST_RESOURCE_ROOT
 
@@ -13,7 +11,7 @@ class TestDefaultSource(TestCase):
 
     def test_get_config(self):
         # Given
-        parser = MagicMock(spec=ConfigArgumentParser)
+        parser = MagicMock(spec=Parser)
         parser.get_defaults.return_value = {
             "test1": "value",
             "test2": 1234,
@@ -35,7 +33,7 @@ class TestDefaultSource(TestCase):
 
     def test_get_namespace(self):
         # Given
-        parser = MagicMock(spec=ConfigArgumentParser)
+        parser = MagicMock(spec=Parser)
         parser.get_defaults.return_value = {
             "test1": "value",
             "test2": 1234,
@@ -56,7 +54,7 @@ class TestFileSource(TestCase):
 
     def test_get_config(self):
         # Given
-        parser = MagicMock(spec=ConfigArgumentParser)
+        parser = MagicMock(spec=Parser)
         file_path = f"{TEST_RESOURCE_ROOT}/config/test-config.conf"
 
         source = FileSource(parser, file_path)
@@ -69,7 +67,7 @@ class TestFileSource(TestCase):
 
     def test_get_namespace(self):
         # Given
-        parser = MagicMock(spec=ConfigArgumentParser)
+        parser = MagicMock(spec=Parser)
         mock_config = MagicMock(spec=Namespace)
         parser.parse_config.return_value = mock_config
         file_path = f"{TEST_RESOURCE_ROOT}/config/test-config.conf"
@@ -88,7 +86,7 @@ class TestDirectorySource(TestCase):
 
     def test_get_config(self):
         # Given
-        parser = MagicMock(spec=ConfigArgumentParser)
+        parser = MagicMock(spec=Parser)
         dir_path = f"{TEST_RESOURCE_ROOT}/config/test-config.d"
 
         source = DirectorySource(parser, dir_path, pattern="*.conf")
@@ -111,7 +109,7 @@ class TestDirectorySource(TestCase):
 
     def test_get_namespace(self):
         # Given
-        parser = MagicMock(spec=ConfigArgumentParser)
+        parser = MagicMock(spec=Parser)
         mock_config = MagicMock(spec=Namespace)
         parser.parse_config.return_value = mock_config
         dir_path = f"{TEST_RESOURCE_ROOT}/config/test-config.d"
@@ -139,7 +137,7 @@ class TestEnvironmentSource(TestCase):
 
     def test_get_config(self):
         # Given
-        parser = MagicMock(spec=ConfigArgumentParser)
+        parser = MagicMock(spec=Parser)
         prefix = "TEST_PREFIX_"
         os.environ["TEST_PREFIX_TEST1"] = "value1"
         os.environ["TEST_PREFIX_TEST2"] = "0"
@@ -156,7 +154,7 @@ class TestEnvironmentSource(TestCase):
 
     def test_get_namespace(self):
         # Given
-        parser = MagicMock(spec=ConfigArgumentParser)
+        parser = MagicMock(spec=Parser)
         mock_config = MagicMock(spec=Namespace)
         parser.parse_config.return_value = mock_config
         prefix = "TEST_PREFIX_"
@@ -179,7 +177,7 @@ class TestArgumentSource(TestCase):
 
     def test_get_config(self):
         # Given
-        parser = MagicMock(spec=ConfigArgumentParser)
+        parser = MagicMock(spec=Parser)
         parser.parse_args.return_value = Namespace(test1="value1", test2=0)
         source = ArgumentSource(parser)
 
@@ -191,7 +189,7 @@ class TestArgumentSource(TestCase):
 
     def test_get_namespace(self):
         # Given
-        parser = MagicMock(spec=ConfigArgumentParser)
+        parser = MagicMock(spec=Parser)
         mock_config = MagicMock(spec=Namespace)
         parser.parse_args.return_value = mock_config
         source = ArgumentSource(parser)

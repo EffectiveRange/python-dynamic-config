@@ -1,3 +1,4 @@
+from abc import ABC, abstractmethod
 from argparse import (
     SUPPRESS,
     _ActionsContainer,
@@ -21,7 +22,40 @@ class ConfigArgument:
     container: "ConfigContainer"
 
 
-class ConfigContainer(_ActionsContainer):
+class Container(ABC):
+
+    @abstractmethod
+    def add_config_argument(self, *args: Any, dynamic: bool = False, **kwargs: Any) -> ConfigArgument: ...
+
+    @abstractmethod
+    def add_config_group(self, *args: Any, **kwargs: Any) -> "ConfigArgumentGroup": ...
+
+    @abstractmethod
+    def get_config_groups(self) -> list["ConfigArgumentGroup"]: ...
+
+    @abstractmethod
+    def get_config_arguments(self) -> dict[str, ConfigArgument]: ...
+
+    @abstractmethod
+    def get_dynamic_arguments(self) -> dict[str, ConfigArgument]: ...
+
+
+class Parser(Container):
+
+    @abstractmethod
+    def get_defaults(self) -> dict[str, Any]: ...
+
+    @abstractmethod
+    def default_config(self, print_to_console: bool = False) -> str: ...
+
+    @abstractmethod
+    def parse_args(self) -> Namespace: ...
+
+    @abstractmethod
+    def parse_config(self, config: dict[str, Any]) -> Namespace: ...
+
+
+class ConfigContainer(Container, _ActionsContainer):
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         if not hasattr(self, "_actions"):
@@ -110,10 +144,8 @@ class ConfigArgumentParser(ArgumentParser, ConfigContainer):
 
                     if value in ("true", "yes", "1", "on"):
                         args.append(argument.action.option_strings[0])
-                    elif value in ("false", "no", "0", "off"):
-                        args.append(argument.action.option_strings[1])
                     else:
-                        raise ValueError(f"Invalid boolean value: {value}")
+                        args.append(argument.action.option_strings[1])
                 else:
                     option = argument.action.option_strings[0]
                     args.extend([option, value])

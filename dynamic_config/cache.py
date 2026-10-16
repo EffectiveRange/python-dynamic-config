@@ -1,10 +1,26 @@
+from abc import ABC, abstractmethod
 from types import MappingProxyType
 from typing import Any, cast
 
 from argparse import Namespace
 
 
-class ConfigSnapshot(Namespace):
+class Snapshot(ABC):
+
+    @abstractmethod
+    def values(self) -> dict[str, Any]: ...
+
+
+class Cache(ABC):
+
+    @abstractmethod
+    def snapshot(self) -> Namespace: ...
+
+    @abstractmethod
+    def update(self, values: dict[str, Any]) -> None: ...
+
+
+class ConfigSnapshot(Snapshot, Namespace):
 
     def __init__(self, values: dict[str, Any]) -> None:
         object.__setattr__(self, "_values", MappingProxyType(dict(values)))
@@ -21,11 +37,19 @@ class ConfigSnapshot(Namespace):
     def __delattr__(self, name: str) -> None:
         raise AttributeError("ConfigSnapshot is immutable")
 
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Namespace):
+            return NotImplemented
+        return bool(self._values == vars(other))
+
+    def __contains__(self, key: object) -> bool:
+        return key in self._values
+
     def values(self) -> dict[str, Any]:
         return dict(self._values)
 
 
-class ConfigCache(Namespace):
+class ConfigCache(Cache, Namespace):
     def __init__(self, initial: dict[str, Any] | None = None) -> None:
         object.__setattr__(self, "_snapshot", ConfigSnapshot(initial or {}))
 
@@ -35,8 +59,16 @@ class ConfigCache(Namespace):
     def __setattr__(self, name: str, value: Any) -> None:
         raise AttributeError("ConfigCache is read-only; configuration is updated by the update() method")
 
-    def snapshot(self) -> ConfigSnapshot:
-        return cast(ConfigSnapshot, self._snapshot)
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Namespace):
+            return NotImplemented
+        return bool(self._snapshot._values == vars(other))
+
+    def __contains__(self, key: object) -> bool:
+        return key in self._snapshot._values
+
+    def snapshot(self) -> Namespace:
+        return cast(Namespace, self._snapshot)
 
     def update(self, values: dict[str, Any]) -> None:
         object.__setattr__(self, "_snapshot", ConfigSnapshot(values))
