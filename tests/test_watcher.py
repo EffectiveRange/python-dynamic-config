@@ -17,7 +17,7 @@ class TestConfigWatcher(TestCase):
         watcher.register(path)
 
         # Then
-        self.assertIn(path, watcher._paths)
+        self.assertIn(path, watcher._watches)
 
     def test_unregister(self):
         # Given
@@ -30,7 +30,7 @@ class TestConfigWatcher(TestCase):
         watcher.unregister(path)
 
         # Then
-        self.assertNotIn(path, watcher._paths)
+        self.assertNotIn(path, watcher._watches)
 
     def test_start(self):
         # Given
@@ -45,7 +45,7 @@ class TestConfigWatcher(TestCase):
 
         # Then
         observer.start.assert_called_once()
-        for path in watcher._paths:
+        for path in watcher._watches:
             observer.schedule.assert_any_call(watcher, path, recursive=True)
 
     def test_stop(self):
@@ -61,5 +61,5 @@ class TestConfigWatcher(TestCase):
 
         # Then
         observer.stop.assert_called_once()
-        for path in watcher._paths:
+        for path in watcher._watches:
             observer.unschedule.assert_any_call(path)
