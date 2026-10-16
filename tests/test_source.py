@@ -1,9 +1,8 @@
-from argparse import Namespace
+from argparse import ArgumentParser, Namespace
 import os
 from unittest import TestCase
 from unittest.mock import MagicMock
-from dynamic_config import Parser, DefaultSource, FileSource
-from dynamic_config.source import ArgumentSource, DirectorySource, EnvironmentSource
+from dynamic_config import Parser, DefaultSource, FileSource, ArgumentSource, DirectorySource, EnvironmentSource
 from tests.utils import TEST_RESOURCE_ROOT
 
 
@@ -177,7 +176,7 @@ class TestArgumentSource(TestCase):
 
     def test_get_config(self):
         # Given
-        parser = MagicMock(spec=Parser)
+        parser = MagicMock(spec=ArgumentParser)
         parser.parse_args.return_value = Namespace(test1="value1", test2=0)
         source = ArgumentSource(parser)
 
@@ -189,7 +188,7 @@ class TestArgumentSource(TestCase):
 
     def test_get_namespace(self):
         # Given
-        parser = MagicMock(spec=Parser)
+        parser = MagicMock(spec=ArgumentParser)
         mock_config = MagicMock(spec=Namespace)
         parser.parse_args.return_value = mock_config
         source = ArgumentSource(parser)

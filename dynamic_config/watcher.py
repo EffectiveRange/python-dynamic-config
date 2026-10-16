@@ -19,7 +19,7 @@ class Watcher(ABC):
     def stop(self) -> None: ...
 
 
-class ConfigWatcher(FileSystemEventHandler):
+class ConfigWatcher(Watcher, FileSystemEventHandler):
 
     def __init__(self, observer: BaseObserver) -> None:
         super().__init__()
@@ -47,6 +47,6 @@ class ConfigWatcher(FileSystemEventHandler):
             self._observer.unschedule(path)
         self._paths.clear()
 
-    # def on_modified(self, event: FileSystemEvent) -> None:
-    #     if not event.is_directory:
-    #         print(f"Configuration file changed: {event.src_path}")
+    def on_modified(self, event: FileSystemEvent) -> None:
+        if not event.is_directory:
+            print(f"Configuration file changed: {event.src_path}")

@@ -1,4 +1,4 @@
-from argparse import _ArgumentGroup, BooleanOptionalAction
+from argparse import BooleanOptionalAction
 from unittest import TestCase
 
 from dynamic_config import ConfigArgumentParser, ConfigArgument
@@ -87,7 +87,7 @@ class TestConfigContainer(TestCase):
         # Given
         container = ConfigContainer(None, "-", None, "error")
         arg1 = container.add_config_argument("--test1", dynamic=True)
-        arg2 = container.add_config_argument("--test2", dynamic=False)
+        container.add_config_argument("--test2", dynamic=False)
 
         # When
         dynamic_arguments = container.get_dynamic_arguments()

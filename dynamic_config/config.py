@@ -1,11 +1,13 @@
 from argparse import Namespace
 from pathlib import Path
+from watchdog.observers import Observer
 from typing import Any
 from abc import ABC, abstractmethod
 
 from dynamic_config import (
     ConfigSource,
     Parser,
+    ConfigArgumentParser,
     DefaultSource,
     EnvironmentSource,
     FileSource,
@@ -13,10 +15,17 @@ from dynamic_config import (
     ArgumentSource,
     Cache,
     ConfigCache,
+    ConfigWatcher, Watcher
 )
 
 
 class Config(ABC):
+
+    @abstractmethod
+    def initialize(self) -> None: ...
+
+    @abstractmethod
+    def destroy(self) -> None: ...
 
     @abstractmethod
     def get(self) -> Namespace: ...
@@ -30,18 +39,21 @@ class Config(ABC):
 
 class ConfigBuilder:
 
-    def __init__(self, parser: Parser):
+    def __init__(self, parser: ConfigArgumentParser):
         self._cache = ConfigCache()
         self._parser = parser
+        self._watcher = ConfigWatcher(Observer())
         self._sources: list[ConfigSource] = []
 
     def with_defaults(self) -> "ConfigBuilder":
         return self._add_source(DefaultSource(self._parser))
 
     def with_file(self, file_path: str | Path) -> "ConfigBuilder":
+        self._watcher.register(str(file_path))
         return self._add_source(FileSource(self._parser, file_path))
 
     def with_directory(self, dir_path: str | Path, pattern: str = "*.conf") -> "ConfigBuilder":
+        self._watcher.register(str(dir_path))
         return self._add_source(DirectorySource(self._parser, dir_path, pattern))
 
     def with_environment(self, prefix: str = "") -> "ConfigBuilder":
@@ -55,7 +67,7 @@ class ConfigBuilder:
         return self
 
     def build(self) -> "DynamicConfig":
-        return DynamicConfig(self._cache, self._parser, self._sources)
+        return DynamicConfig(self._cache, self._parser, self._watcher, self._sources)
 
 
 class DynamicConfig(Config):
@@ -64,14 +76,23 @@ class DynamicConfig(Config):
         self,
         cache: Cache,
         parser: Parser,
+        watcher: Watcher,
         sources: list[ConfigSource],
     ) -> None:
         self._cache = cache
         self._parser = parser
+        self._watcher = watcher
         self._sources = sources
 
+    def initialize(self) -> None:
+        self._watcher.start()
+
+    def destroy(self) -> None:
+        self._watcher.stop()
+        self._cache.clear()
+
     def get(self) -> Namespace:
-        return self._cache
+        return self._cache.get()
 
     def snapshot(self) -> Namespace:
         return self._cache.snapshot()

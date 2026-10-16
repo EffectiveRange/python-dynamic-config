@@ -1,6 +1,9 @@
 from unittest import TestCase
 from unittest.mock import MagicMock
 from dynamic_config import (
+    ConfigSource,
+    ConfigArgument,
+    Parser,
     ConfigArgumentParser,
     ConfigBuilder,
     DynamicConfig,
@@ -10,9 +13,8 @@ from dynamic_config import (
     EnvironmentSource,
     ArgumentSource,
     ConfigCache,
+    Watcher,
 )
-from dynamic_config.parser import ConfigArgument
-from dynamic_config.source import ConfigSource
 
 
 class TestConfigBuilder(TestCase):
@@ -107,18 +109,18 @@ class TestDynamicConfig(TestCase):
     def test_get(self):
         # Given
         cache = MagicMock(spec=ConfigCache)
-        config = DynamicConfig(cache, MagicMock(spec=ConfigArgumentParser), [])
+        config = DynamicConfig(cache, MagicMock(spec=Parser), MagicMock(spec=Watcher), [])
 
         # When
         result = config.get()
 
         # Then
-        self.assertEqual(result, cache)
+        self.assertEqual(result, cache.get())
 
     def test_get_snapshot(self):
         # Given
         cache = MagicMock(spec=ConfigCache)
-        config = DynamicConfig(cache, MagicMock(spec=ConfigArgumentParser), [])
+        config = DynamicConfig(cache, MagicMock(spec=Parser), MagicMock(spec=Watcher), [])
 
         # When
         result = config.snapshot()
@@ -152,7 +154,7 @@ class TestDynamicConfig(TestCase):
         source2 = MagicMock(spec=ConfigSource)
         source2.get_config.return_value = {"test3": "value3-2", "test4": "value4-2"}
         sources: list[ConfigSource] = [source1, source2]
-        config = DynamicConfig(cache, parser, sources)
+        config = DynamicConfig(cache, parser, MagicMock(spec=Watcher), sources)
 
         # When
         config.refresh()

@@ -49,9 +49,6 @@ class Parser(Container):
     def default_config(self, print_to_console: bool = False) -> str: ...
 
     @abstractmethod
-    def parse_args(self) -> Namespace: ...
-
-    @abstractmethod
     def parse_config(self, config: dict[str, Any]) -> Namespace: ...
 
 
@@ -95,7 +92,7 @@ class ConfigArgumentGroup(_ArgumentGroup, ConfigContainer):
         ConfigContainer.__init__(self, *args, **kwargs)
 
 
-class ConfigArgumentParser(ArgumentParser, ConfigContainer):
+class ConfigArgumentParser(Parser, ArgumentParser, ConfigContainer):
 
     def __init__(self, *args: Any, default_section: str = "default", **kwargs: Any) -> None:
         kwargs.__setitem__("argument_default", SUPPRESS)

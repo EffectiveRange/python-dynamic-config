@@ -166,3 +166,13 @@ class TestConfigCache(TestCase):
         self.assertNotEqual(old_snapshot, new_snapshot)
         self.assertEqual(old_snapshot.values(), {"key": "value"})
         self.assertEqual(new_snapshot.values(), {"key": "new_value"})
+
+    def test_clear(self):
+        # Given
+        cache = ConfigCache({"key": "value"})
+
+        # When
+        cache.clear()
+
+        # Then
+        self.assertEqual(cache.snapshot().values(), {})

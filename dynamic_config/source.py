@@ -2,7 +2,7 @@ import os
 import glob
 from pathlib import Path
 from dynamic_config import Parser
-from argparse import Namespace
+from argparse import ArgumentParser, Namespace
 from abc import ABC, abstractmethod
 from typing import Any
 from configparser import ConfigParser
@@ -102,7 +102,7 @@ class EnvironmentSource(ConfigSource):
 
 class ArgumentSource(ConfigSource):
 
-    def __init__(self, parser: Parser) -> None:
+    def __init__(self, parser: ArgumentParser) -> None:
         self._parser = parser
 
     def get_config(self) -> dict[str, Any]:

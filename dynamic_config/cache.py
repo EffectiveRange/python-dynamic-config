@@ -14,10 +14,16 @@ class Snapshot(ABC):
 class Cache(ABC):
 
     @abstractmethod
+    def get(self) -> Namespace: ...
+
+    @abstractmethod
     def snapshot(self) -> Namespace: ...
 
     @abstractmethod
     def update(self, values: dict[str, Any]) -> None: ...
+
+    @abstractmethod
+    def clear(self) -> None: ...
 
 
 class ConfigSnapshot(Snapshot, Namespace):
@@ -67,8 +73,14 @@ class ConfigCache(Cache, Namespace):
     def __contains__(self, key: object) -> bool:
         return key in self._snapshot._values
 
+    def get(self) -> Namespace:
+        return self
+
     def snapshot(self) -> Namespace:
         return cast(Namespace, self._snapshot)
 
     def update(self, values: dict[str, Any]) -> None:
         object.__setattr__(self, "_snapshot", ConfigSnapshot(values))
+
+    def clear(self) -> None:
+        object.__setattr__(self, "_snapshot", ConfigSnapshot({}))
