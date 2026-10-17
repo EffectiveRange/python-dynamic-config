@@ -1,0 +1,46 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Python Debugger: Current File",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${file}",
+      "args": [
+        "--backend=scipy"
+      ],
+      "console": "integratedTerminal",
+      "justMyCode": false
+    },
+    {
+      "name": "Python Debugger: Debug Tests",
+      "type": "debugpy",
+      "request": "launch",
+      "purpose": ["debug-test"],
+      "justMyCode": false
+    },
+    {
+      "name": "Run All Tests (pytest)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "pytest",
+      "args": [
+        "tests"
+      ],
+      "console": "integratedTerminal",
+      "justMyCode": false
+    },
+    {
+      "name": "Run All Tests with Coverage (pytest-cov)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "pytest",
+      "args": [
+        "--cov=hello",
+        "tests"
+      ],
+      "console": "integratedTerminal",
+      "justMyCode": false
+    }
+  ]
+}
