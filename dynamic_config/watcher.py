@@ -13,18 +13,18 @@ from watchdog.observers.api import BaseObserver
 from watchdog.observers.api import ObservedWatch
 
 
-class OnConfigChangeEvent(Protocol):
+class OnConfigFileChanged(Protocol):
 
-    def __call__(self, config_path: str) -> None: ...
+    def __call__(self, file_path: str) -> None: ...
 
 
 class Watcher(ABC):
 
     @abstractmethod
-    def register(self, handler: OnConfigChangeEvent) -> None: ...
+    def register(self, handler: OnConfigFileChanged) -> None: ...
 
     @abstractmethod
-    def deregister(self, handler: OnConfigChangeEvent) -> None: ...
+    def deregister(self, handler: OnConfigFileChanged) -> None: ...
 
     @abstractmethod
     def watch(self, path: str | Path) -> None: ...
@@ -44,7 +44,7 @@ class ConfigWatcher(Watcher, FileSystemEventHandler):
     def __init__(self, observer: BaseObserver) -> None:
         super().__init__()
         self._observer = observer
-        self._handlers: list[OnConfigChangeEvent] = []
+        self._handlers: list[OnConfigFileChanged] = []
         self._watches: dict[str, ObservedWatch] = {}
         self.log = get_logger(type(self).__name__)
 
@@ -54,11 +54,11 @@ class ConfigWatcher(Watcher, FileSystemEventHandler):
     def __exit__(self, exc_type: type | None, exc_val: BaseException | None, exc_tb: TracebackType | None) -> None:
         self.stop()
 
-    def register(self, handler: OnConfigChangeEvent) -> None:
+    def register(self, handler: OnConfigFileChanged) -> None:
         if handler not in self._handlers:
             self._handlers.append(handler)
 
-    def deregister(self, handler: OnConfigChangeEvent) -> None:
+    def deregister(self, handler: OnConfigFileChanged) -> None:
         if handler in self._handlers:
             self._handlers.remove(handler)
 
@@ -83,9 +83,9 @@ class ConfigWatcher(Watcher, FileSystemEventHandler):
 
     def on_any_event(self, event: FileSystemEvent) -> None:
         if event.event_type in ("created", "modified", "moved", "deleted") and not event.is_directory:
-            config_path = str(event.src_path)
+            file_path = str(event.src_path)
 
-            self.log.debug("Config file changed", file=config_path)
+            self.log.debug("Config file changed", file=file_path, change=event.event_type)
 
             for handler in self._handlers:
-                handler(config_path)
+                handler(file_path)

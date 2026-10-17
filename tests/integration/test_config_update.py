@@ -1,7 +1,7 @@
 from unittest import TestCase
-from common_utility import create_file
-from argparse import BooleanOptionalAction
-import pytest
+from common_utility import create_directory, create_file
+from argparse import BooleanOptionalAction, Namespace
+from threading import Event
 from watchdog.observers import Observer
 from context_logger import setup_logging
 from dynamic_config.cache import ConfigCache
@@ -12,7 +12,6 @@ from dynamic_config.watcher import ConfigWatcher
 from tests.utils import TEST_APPLICATION_NAME, TEST_FILE_SYSTEM_ROOT
 
 
-@pytest.mark.skip(reason="wip")
 class TestConfigUpdateHandling(TestCase):
 
     @classmethod
@@ -24,6 +23,7 @@ class TestConfigUpdateHandling(TestCase):
 
     def test_config_update(self):
         # Given
+        changed = Event()
         cache = ConfigCache()
         parser = ConfigArgumentParser()
         parser.add_config_argument("test1", dynamic=True, default="value")
@@ -47,6 +47,7 @@ test4 = 5678
         )
 
         config_dir = TEST_FILE_SYSTEM_ROOT / "config" / "test.conf.d"
+        create_directory(config_dir)
         watcher = ConfigWatcher(Observer())
         watcher.watch(config_file)
         watcher.watch(config_dir)
@@ -59,6 +60,8 @@ test4 = 5678
         config = DynamicConfig(cache=cache, parser=parser, watcher=watcher, sources=sources)
 
         config.initialize()
+
+        config.register(lambda file_path, changes: changed.set())
 
         # When
         create_file(
@@ -75,6 +78,8 @@ test4 = 8765
         )
 
         # Then
+        changed.wait(timeout=1)
+
         self.assertEqual(config.get().test1, "new_value1")
         self.assertEqual(config.get().test2, 4321)
         self.assertEqual(config.get().test3, False)

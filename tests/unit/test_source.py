@@ -214,7 +214,7 @@ class TestArgumentSource(TestCase):
     def test_get_config(self):
         # Given
         parser = MagicMock(spec=ArgumentParser)
-        parser.parse_args.return_value = Namespace(test1="value1", test2=0)
+        parser.parse_known_args.return_value = (Namespace(test1="value1", test2=0), [])
         source = ArgumentSource(parser)
 
         # When
@@ -227,7 +227,7 @@ class TestArgumentSource(TestCase):
         # Given
         parser = MagicMock(spec=ArgumentParser)
         mock_config = MagicMock(spec=Namespace)
-        parser.parse_args.return_value = mock_config
+        parser.parse_known_args.return_value = (mock_config, [])
         source = ArgumentSource(parser)
 
         # When

@@ -67,6 +67,7 @@ class ConfigContainer(Container, _ActionsContainer):
 
     def add_config_argument(self, *args: Any, dynamic: bool = False, **kwargs: Any) -> ConfigArgument:
         action = self.add_argument(*args, **kwargs)
+        action.required = False
         argument = ConfigArgument(action=action, dynamic=dynamic, container=self)
         self._arguments[action.dest] = argument
         return argument
@@ -80,10 +81,15 @@ class ConfigContainer(Container, _ActionsContainer):
         return [group for group in self._action_groups if isinstance(group, ConfigArgumentGroup)]
 
     def get_config_arguments(self) -> dict[str, ConfigArgument]:
-        return self._arguments
+        arguments = dict(self._arguments)
+
+        for group in self.get_config_groups():
+            arguments.update(group.get_config_arguments())
+
+        return arguments
 
     def get_dynamic_arguments(self) -> dict[str, ConfigArgument]:
-        return {dest: action for dest, action in self.get_config_arguments().items() if action.dynamic}
+        return {dest: argument for dest, argument in self.get_config_arguments().items() if argument.dynamic}
 
 
 class ConfigArgumentGroup(_ArgumentGroup, ConfigContainer):

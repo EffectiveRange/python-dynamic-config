@@ -8,7 +8,7 @@ from unittest.mock import MagicMock
 from unittest import TestCase
 
 from dynamic_config import ConfigWatcher
-from dynamic_config.watcher import OnConfigChangeEvent
+from dynamic_config.watcher import OnConfigFileChanged
 from tests.utils import TEST_APPLICATION_NAME, TEST_FILE_SYSTEM_ROOT
 
 
@@ -24,7 +24,7 @@ class TestConfigFileWatching(TestCase):
     def test_config_file_watch(self):
         # Given
         changed = Event()
-        handler = MagicMock(spec=OnConfigChangeEvent)
+        handler = MagicMock(spec=OnConfigFileChanged)
         handler.side_effect = lambda config_path: changed.set()
         observer = Observer()
 
@@ -47,7 +47,7 @@ class TestConfigFileWatching(TestCase):
     def test_config_directory_watch(self):
         # Given
         changed = Event()
-        handler = MagicMock(spec=OnConfigChangeEvent)
+        handler = MagicMock(spec=OnConfigFileChanged)
         handler.side_effect = lambda config_path: changed.set()
         observer = Observer()
 

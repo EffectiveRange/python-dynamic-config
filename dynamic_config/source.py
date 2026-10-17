@@ -125,7 +125,7 @@ class ArgumentSource(ConfigSource):
     def get_config(self) -> dict[str, Any]:
         self.log.debug("Fetching configuration from command-line arguments")
 
-        return vars(self._parser.parse_args())
+        return vars(self.get_namespace())
 
     def get_namespace(self) -> Namespace:
-        return self._parser.parse_args()
+        return self._parser.parse_known_args()[0]

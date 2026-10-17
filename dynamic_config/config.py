@@ -3,10 +3,11 @@
 # SPDX-License-Identifier: MIT
 
 from argparse import Namespace
+from dataclasses import dataclass
 from pathlib import Path
 from context_logger import get_logger
 from watchdog.observers import Observer
-from typing import Any
+from typing import Any, Protocol
 from abc import ABC, abstractmethod
 
 from dynamic_config import (
@@ -25,6 +26,18 @@ from dynamic_config import (
 )
 
 
+@dataclass
+class ConfigChange:
+    config_key: str
+    old_value: Any
+    new_value: Any
+
+
+class OnConfigChangeEvent(Protocol):
+
+    def __call__(self, file_path: str, changes: dict[str, ConfigChange]) -> None: ...
+
+
 class Config(ABC):
 
     @abstractmethod
@@ -41,6 +54,12 @@ class Config(ABC):
 
     @abstractmethod
     def refresh(self) -> None: ...
+
+    @abstractmethod
+    def register(self, handler: OnConfigChangeEvent) -> None: ...
+
+    @abstractmethod
+    def deregister(self, handler: OnConfigChangeEvent) -> None: ...
 
 
 class ConfigBuilder:
@@ -68,12 +87,12 @@ class ConfigBuilder:
     def with_arguments(self) -> "ConfigBuilder":
         return self._add_source(ArgumentSource(self._parser))
 
-    def _add_source(self, source: ConfigSource) -> "ConfigBuilder":
-        self._sources.append(source)
-        return self
-
     def build(self) -> "DynamicConfig":
         return DynamicConfig(self._cache, self._parser, self._watcher, self._sources)
+
+    def _add_source(self, source: ConfigSource) -> "ConfigBuilder":
+            self._sources.append(source)
+            return self
 
 
 class DynamicConfig(Config):
@@ -89,6 +108,7 @@ class DynamicConfig(Config):
         self._parser = parser
         self._watcher = watcher
         self._sources = sources
+        self._handlers: list[OnConfigChangeEvent] = []
         self.log = get_logger(type(self).__name__)
 
     def initialize(self) -> None:
@@ -108,7 +128,7 @@ class DynamicConfig(Config):
         return self._cache.snapshot()
 
     def refresh(self) -> None:
-        old_config = self._cache.snapshot().values()
+        old_config: dict[str, Any] = dict(self._cache.snapshot().values())
         new_config: dict[str, Any] = {}
 
         for source in self._sources:
@@ -122,5 +142,26 @@ class DynamicConfig(Config):
 
         self._cache.update(update)
 
-    def _on_config_file_change(self, config_path: str) -> None:
+    def register(self, handler: OnConfigChangeEvent) -> None:
+        if handler not in self._handlers:
+            self._handlers.append(handler)
+    
+    def deregister(self, handler: OnConfigChangeEvent) -> None:
+        if handler in self._handlers:
+            self._handlers.remove(handler)
+
+    def _on_config_file_change(self, file_path: str) -> None:
+        old_config: dict[str, Any] = dict(self._cache.snapshot().values())
         self.refresh()
+        new_config: dict[str, Any] = dict(self._cache.snapshot().values())
+
+        changes: dict[str, ConfigChange] = {}
+        for key, new_value in new_config.items():
+            old_value = old_config.get(key)
+            if old_value != new_value:
+                changes[key] = ConfigChange(config_key=key, old_value=old_value, new_value=new_value)
+
+        if changes:
+            for handler in self._handlers:
+                handler(file_path, changes)
+

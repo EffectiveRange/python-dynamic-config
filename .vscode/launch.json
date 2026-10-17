@@ -13,6 +13,13 @@
       "justMyCode": false
     },
     {
+      "name": "Python Debugger: Debug Tests",
+      "type": "debugpy",
+      "request": "launch",
+      "purpose": ["debug-test"],
+      "justMyCode": false
+    },
+    {
       "name": "Run All Tests (pytest)",
       "type": "debugpy",
       "request": "launch",
@@ -20,7 +27,8 @@
       "args": [
         "tests"
       ],
-      "console": "integratedTerminal"
+      "console": "integratedTerminal",
+      "justMyCode": false
     },
     {
       "name": "Run All Tests with Coverage (pytest-cov)",
@@ -31,7 +39,8 @@
         "--cov=hello",
         "tests"
       ],
-      "console": "integratedTerminal"
+      "console": "integratedTerminal",
+      "justMyCode": false
     }
   ]
 }
