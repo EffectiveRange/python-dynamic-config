@@ -13,13 +13,13 @@ from configparser import ConfigParser
 from context_logger import get_logger
 
 
-class ConfigSource(ABC):
+class Source(ABC):
 
     @abstractmethod
     def get_config(self) -> Namespace: ...
 
 
-class DefaultSource(ConfigSource):
+class DefaultSource(Source):
 
     def __init__(self, parser: Parser) -> None:
         self._parser = parser
@@ -33,7 +33,7 @@ class DefaultSource(ConfigSource):
         return Namespace(**defaults)
 
 
-class FileSource(ConfigSource):
+class FileSource(Source):
 
     def __init__(self, parser: Parser, path: str | Path) -> None:
         self._parser = parser
@@ -88,7 +88,7 @@ class DirectorySource(FileSource):
         return self._parser.parse_config(config)
 
 
-class EnvironmentSource(ConfigSource):
+class EnvironmentSource(Source):
 
     def __init__(self, parser: Parser, prefix: str = "") -> None:
         self._parser = parser
@@ -105,7 +105,7 @@ class EnvironmentSource(ConfigSource):
         return self._parser.parse_config(config)
 
 
-class ArgumentSource(ConfigSource):
+class ArgumentSource(Source):
 
     def __init__(self, parser: ArgumentParser) -> None:
         self._parser = parser

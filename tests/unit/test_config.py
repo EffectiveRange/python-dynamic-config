@@ -4,7 +4,7 @@ from unittest.mock import MagicMock
 
 from context_logger import setup_logging
 from dynamic_config import (
-    ConfigSource,
+    Source,
     ConfigArgument,
     Parser,
     ConfigArgumentParser,
@@ -15,9 +15,10 @@ from dynamic_config import (
     DirectorySource,
     EnvironmentSource,
     ArgumentSource,
-    ConfigCache,
+    Cache,
     Watcher,
 )
+
 from tests.utils import TEST_APPLICATION_NAME
 
 
@@ -126,10 +127,10 @@ class TestDynamicConfig(TestCase):
 
     def test_initialize(self):
         # Given
-        cache = MagicMock(spec=ConfigCache)
+        cache = MagicMock(spec=Cache)
         parser = MagicMock(spec=Parser)
         watcher = MagicMock(spec=Watcher)
-        sources: list[ConfigSource] = []
+        sources: list[Source] = []
         config = DynamicConfig(cache, parser, watcher, sources)
 
         # When
@@ -141,10 +142,10 @@ class TestDynamicConfig(TestCase):
 
     def test_destroy(self):
         # Given
-        cache = MagicMock(spec=ConfigCache)
+        cache = MagicMock(spec=Cache)
         parser = MagicMock(spec=Parser)
         watcher = MagicMock(spec=Watcher)
-        sources: list[ConfigSource] = []
+        sources: list[Source] = []
         config = DynamicConfig(cache, parser, watcher, sources)
 
         # When
@@ -157,7 +158,7 @@ class TestDynamicConfig(TestCase):
 
     def test_get(self):
         # Given
-        cache = MagicMock(spec=ConfigCache)
+        cache = MagicMock(spec=Cache)
         config = DynamicConfig(cache, MagicMock(spec=Parser), MagicMock(spec=Watcher), [])
 
         # When
@@ -168,7 +169,7 @@ class TestDynamicConfig(TestCase):
 
     def test_get_snapshot(self):
         # Given
-        cache = MagicMock(spec=ConfigCache)
+        cache = MagicMock(spec=Cache)
         config = DynamicConfig(cache, MagicMock(spec=Parser), MagicMock(spec=Watcher), [])
 
         # When
@@ -180,7 +181,7 @@ class TestDynamicConfig(TestCase):
 
     def test_refresh(self):
         # Given
-        cache = MagicMock(spec=ConfigCache)
+        cache = MagicMock(spec=Cache)
         cache.snapshot.return_value.values.return_value = {
             "test1": "value1",
             "test2": "value2",
@@ -193,19 +194,19 @@ class TestDynamicConfig(TestCase):
             "test4": MagicMock(spec=ConfigArgument),
             "test5": MagicMock(spec=ConfigArgument),
         }
-        source1 = MagicMock(spec=ConfigSource)
+        source1 = MagicMock(spec=Source)
         source1.get_config.return_value = Namespace(
             test1="value1-1",
             test2="value2-1",
             test3="value3",
             test4="value4-1",
         )
-        source2 = MagicMock(spec=ConfigSource)
+        source2 = MagicMock(spec=Source)
         source2.get_config.return_value = Namespace(
             test3="value3-2",
             test4="value4-2",
         )
-        sources: list[ConfigSource] = [source1, source2]
+        sources: list[Source] = [source1, source2]
         config = DynamicConfig(cache, parser, MagicMock(spec=Watcher), sources)
 
         # When

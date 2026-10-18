@@ -1,5 +1,5 @@
 from threading import Event
-from common_utility import append_file, create_file, delete_directory
+from common_utility import append_file, create_file, delete_directory, create_directory
 from context_logger import setup_logging
 from watchdog.observers import Observer
 
@@ -55,7 +55,7 @@ class TestConfigFileWatching(TestCase):
             watcher.register(handler)
 
             dummy_dir = TEST_FILE_SYSTEM_ROOT / "dummy_dir"
-            dummy_dir.mkdir(exist_ok=True)
+            create_directory(dummy_dir)
             watcher.watch(dummy_dir)
 
             watcher.start()

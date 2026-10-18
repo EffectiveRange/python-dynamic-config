@@ -11,7 +11,7 @@ from typing import Any, Protocol
 from abc import ABC, abstractmethod
 
 from dynamic_config import (
-    ConfigSource,
+    Source,
     Parser,
     ConfigArgumentParser,
     DefaultSource,
@@ -68,7 +68,7 @@ class ConfigBuilder:
         self._cache = ConfigCache()
         self._parser = parser
         self._watcher = ConfigWatcher(Observer())
-        self._sources: list[ConfigSource] = []
+        self._sources: list[Source] = []
 
     def with_defaults(self) -> "ConfigBuilder":
         return self._add_source(DefaultSource(self._parser))
@@ -90,7 +90,7 @@ class ConfigBuilder:
     def build(self) -> "DynamicConfig":
         return DynamicConfig(self._cache, self._parser, self._watcher, self._sources)
 
-    def _add_source(self, source: ConfigSource) -> "ConfigBuilder":
+    def _add_source(self, source: Source) -> "ConfigBuilder":
         self._sources.append(source)
         return self
 
@@ -102,7 +102,7 @@ class DynamicConfig(Config):
         cache: Cache,
         parser: Parser,
         watcher: Watcher,
-        sources: list[ConfigSource],
+        sources: list[Source],
     ) -> None:
         self._cache = cache
         self._parser = parser
