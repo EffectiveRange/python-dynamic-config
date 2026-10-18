@@ -8,7 +8,6 @@ from pathlib import Path
 from dynamic_config import Parser
 from argparse import ArgumentParser, Namespace
 from abc import ABC, abstractmethod
-from typing import Any
 from configparser import ConfigParser
 from context_logger import get_logger
 
@@ -16,10 +15,7 @@ from context_logger import get_logger
 class ConfigSource(ABC):
 
     @abstractmethod
-    def get_config(self) -> dict[str, Any]: ...
-
-    @abstractmethod
-    def get_namespace(self) -> Namespace: ...
+    def get_config(self) -> Namespace: ...
 
 
 class DefaultSource(ConfigSource):
@@ -28,12 +24,11 @@ class DefaultSource(ConfigSource):
         self._parser = parser
         self.log = get_logger(type(self).__name__)
 
-    def get_config(self) -> dict[str, Any]:
+    def get_config(self) -> Namespace:
         self.log.debug("Fetching default configuration")
-        return self._parser.get_defaults()
 
-    def get_namespace(self) -> Namespace:
-        defaults = self.get_config()
+        defaults = self._parser.get_defaults()
+
         return Namespace(**defaults)
 
 
@@ -44,7 +39,7 @@ class FileSource(ConfigSource):
         self._file_path = Path(file_path)
         self.log = get_logger(type(self).__name__)
 
-    def get_config(self) -> dict[str, Any]:
+    def get_config(self) -> Namespace:
         self.log.debug("Fetching configuration from file", file=self._file_path)
 
         file_parser = ConfigParser(interpolation=None)
@@ -55,10 +50,6 @@ class FileSource(ConfigSource):
             for key, value in file_parser.items(section):
                 config[key] = value
 
-        return config
-
-    def get_namespace(self) -> Namespace:
-        config = self.get_config()
         return self._parser.parse_config(config)
 
 
@@ -77,7 +68,7 @@ class DirectorySource(ConfigSource):
         self._recursive = recursive
         self.log = get_logger(type(self).__name__)
 
-    def get_config(self) -> dict[str, Any]:
+    def get_config(self) -> Namespace:
         self.log.debug("Fetching configuration from directory", dir=self._dir_path, pattern=self._pattern)
 
         config = {}
@@ -87,12 +78,8 @@ class DirectorySource(ConfigSource):
         for file_path in file_paths:
             file_source = FileSource(self._parser, file_path)
             file_config = file_source.get_config()
-            config.update(file_config)
+            config.update(vars(file_config))
 
-        return config
-
-    def get_namespace(self) -> Namespace:
-        config = self.get_config()
         return self._parser.parse_config(config)
 
 
@@ -103,16 +90,13 @@ class EnvironmentSource(ConfigSource):
         self._prefix = prefix
         self.log = get_logger(type(self).__name__)
 
-    def get_config(self) -> dict[str, Any]:
+    def get_config(self) -> Namespace:
         self.log.debug("Fetching configuration from environment", prefix=self._prefix)
 
         config = {
             key.lower()[len(self._prefix) :]: value for key, value in os.environ.items() if key.startswith(self._prefix)
         }
-        return config
 
-    def get_namespace(self) -> Namespace:
-        config = self.get_config()
         return self._parser.parse_config(config)
 
 
@@ -122,10 +106,7 @@ class ArgumentSource(ConfigSource):
         self._parser = parser
         self.log = get_logger(type(self).__name__)
 
-    def get_config(self) -> dict[str, Any]:
+    def get_config(self) -> Namespace:
         self.log.debug("Fetching configuration from command-line arguments")
 
-        return vars(self.get_namespace())
-
-    def get_namespace(self) -> Namespace:
         return self._parser.parse_known_args()[0]

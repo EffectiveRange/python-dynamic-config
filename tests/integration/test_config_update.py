@@ -1,6 +1,6 @@
 from unittest import TestCase
-from common_utility import create_directory, create_file
-from argparse import BooleanOptionalAction, Namespace
+from common_utility import create_directory, create_file, delete_directory
+from argparse import BooleanOptionalAction
 from threading import Event
 from watchdog.observers import Observer
 from context_logger import setup_logging
@@ -20,29 +20,30 @@ class TestConfigUpdateHandling(TestCase):
 
     def setUp(self):
         print()
+        delete_directory(TEST_FILE_SYSTEM_ROOT)
 
     def test_config_update(self):
         # Given
         changed = Event()
         cache = ConfigCache()
         parser = ConfigArgumentParser()
-        parser.add_config_argument("test1", dynamic=True, default="value")
-        parser.add_config_argument("test2", type=int, default=0)
+        parser.add_config_argument("dynamic_default_str", dynamic=True, default="value")
+        parser.add_config_argument("default_int", type=int, default=0)
         group1 = parser.add_config_group("section1")
-        group1.add_config_argument("test3", dynamic=True, action=BooleanOptionalAction, default=False)
-        group1.add_config_argument("test4", type=int, dynamic=True)
+        group1.add_config_argument("dynamic_default_bool", dynamic=True, action=BooleanOptionalAction, default=False)
+        group1.add_config_argument("dynamic_int", type=int, dynamic=True)
 
         config_file = TEST_FILE_SYSTEM_ROOT / "config" / "test.conf"
         create_file(
             config_file,
             """
 [default]
-test1 = value1
-test2 = 1234
+dynamic_default_str = value1
+default_int = 1234
 
 [section1]
-test3 = true
-test4 = 5678
+dynamic_default_bool = true
+dynamic_int = 5678
 """,
         )
 
@@ -68,19 +69,19 @@ test4 = 5678
             config_dir / "new.conf",
             """
 [default]
-test1 = new_value1
-test2 = 4321
+dynamic_default_str = new_value1
+default_int = 4321
 
 [section1]
-test3 = false
-test4 = 8765
+dynamic_default_bool = false
+dynamic_int = 8765
 """,
         )
 
         # Then
         changed.wait(timeout=1)
 
-        self.assertEqual(config.get().test1, "new_value1")
-        self.assertEqual(config.get().test2, 4321)
-        self.assertEqual(config.get().test3, False)
-        self.assertEqual(config.get().test4, 8765)
+        self.assertEqual(config.get().dynamic_default_str, "new_value1")
+        self.assertEqual(config.get().default_int, 1234)
+        self.assertEqual(config.get().dynamic_default_bool, False)
+        self.assertEqual(config.get().dynamic_int, 8765)

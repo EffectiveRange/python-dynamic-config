@@ -31,28 +31,6 @@ class TestDefaultSource(TestCase):
         config = source.get_config()
 
         # Then
-        self.assertEqual(
-            {
-                "test1": "value",
-                "test2": 1234,
-            },
-            config,
-        )
-
-    def test_get_namespace(self):
-        # Given
-        parser = MagicMock(spec=Parser)
-        parser.get_defaults.return_value = {
-            "test1": "value",
-            "test2": 1234,
-        }
-
-        source = DefaultSource(parser)
-
-        # When
-        config = source.get_namespace()
-
-        # Then
         self.assertIsNotNone(config)
         self.assertEqual(config.test1, "value")
         self.assertEqual(config.test2, 1234)
@@ -70,19 +48,6 @@ class TestFileSource(TestCase):
     def test_get_config(self):
         # Given
         parser = MagicMock(spec=Parser)
-        file_path = TEST_RESOURCE_ROOT / "config" / "test-config.conf"
-
-        source = FileSource(parser, file_path)
-
-        # When
-        config = source.get_config()
-
-        # Then
-        self.assertEqual({"test1": "value1", "test2": "0", "test3": "true", "test4": "1111"}, config)
-
-    def test_get_namespace(self):
-        # Given
-        parser = MagicMock(spec=Parser)
         mock_config = MagicMock(spec=Namespace)
         parser.parse_config.return_value = mock_config
         file_path = TEST_RESOURCE_ROOT / "config" / "test-config.conf"
@@ -90,7 +55,7 @@ class TestFileSource(TestCase):
         source = FileSource(parser, file_path)
 
         # When
-        config = source.get_namespace()
+        config = source.get_config()
 
         # Then
         self.assertEqual(config, mock_config)
@@ -109,29 +74,6 @@ class TestDirectorySource(TestCase):
     def test_get_config(self):
         # Given
         parser = MagicMock(spec=Parser)
-        dir_path = TEST_RESOURCE_ROOT / "config" / "test-config.d"
-
-        source = DirectorySource(parser, dir_path, pattern="*.conf")
-
-        # When
-        config = source.get_config()
-
-        # Then
-        self.assertEqual(
-            {
-                "test1": "another_value",
-                "test2": "5678",
-                "test3": "false",
-                "test4": "5678",
-                "test5": "false",
-                "test6": "another_value",
-            },
-            config,
-        )
-
-    def test_get_namespace(self):
-        # Given
-        parser = MagicMock(spec=Parser)
         mock_config = MagicMock(spec=Namespace)
         parser.parse_config.return_value = mock_config
         dir_path = TEST_RESOURCE_ROOT / "config" / "test-config.d"
@@ -139,7 +81,7 @@ class TestDirectorySource(TestCase):
         source = DirectorySource(parser, dir_path, pattern="*.conf")
 
         # When
-        config = source.get_namespace()
+        config = source.get_config()
 
         # Then
         self.assertEqual(config, mock_config)
@@ -167,23 +109,6 @@ class TestEnvironmentSource(TestCase):
     def test_get_config(self):
         # Given
         parser = MagicMock(spec=Parser)
-        prefix = "TEST_PREFIX_"
-        os.environ["TEST_PREFIX_TEST1"] = "value1"
-        os.environ["TEST_PREFIX_TEST2"] = "0"
-        os.environ["TEST_PREFIX_TEST3"] = "true"
-        os.environ["TEST_PREFIX_TEST4"] = "1111"
-
-        source = EnvironmentSource(parser, prefix=prefix)
-
-        # When
-        config = source.get_config()
-
-        # Then
-        self.assertEqual({"test1": "value1", "test2": "0", "test3": "true", "test4": "1111"}, config)
-
-    def test_get_namespace(self):
-        # Given
-        parser = MagicMock(spec=Parser)
         mock_config = MagicMock(spec=Namespace)
         parser.parse_config.return_value = mock_config
         prefix = "TEST_PREFIX_"
@@ -195,7 +120,7 @@ class TestEnvironmentSource(TestCase):
         source = EnvironmentSource(parser, prefix=prefix)
 
         # When
-        config = source.get_namespace()
+        config = source.get_config()
 
         # Then
         self.assertEqual(config, mock_config)
@@ -214,24 +139,12 @@ class TestArgumentSource(TestCase):
     def test_get_config(self):
         # Given
         parser = MagicMock(spec=ArgumentParser)
-        parser.parse_known_args.return_value = (Namespace(test1="value1", test2=0), [])
-        source = ArgumentSource(parser)
-
-        # When
-        config = source.get_config()
-
-        # Then
-        self.assertEqual({"test1": "value1", "test2": 0}, config)
-
-    def test_get_namespace(self):
-        # Given
-        parser = MagicMock(spec=ArgumentParser)
         mock_config = MagicMock(spec=Namespace)
         parser.parse_known_args.return_value = (mock_config, [])
         source = ArgumentSource(parser)
 
         # When
-        config = source.get_namespace()
+        config = source.get_config()
 
         # Then
         self.assertEqual(config, mock_config)

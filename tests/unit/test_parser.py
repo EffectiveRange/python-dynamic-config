@@ -12,7 +12,7 @@ class TestConfigContainer(TestCase):
 
     @classmethod
     def setUpClass(cls):
-        setup_logging(TEST_APPLICATION_NAME, 'DEBUG', warn_on_overwrite=False)
+        setup_logging(TEST_APPLICATION_NAME, "DEBUG", warn_on_overwrite=False)
 
     def setUp(self):
         print()
@@ -27,7 +27,7 @@ class TestConfigContainer(TestCase):
         # Then
         self.assertIsInstance(argument, ConfigArgument)
         self.assertTrue(argument.dynamic)
-        self.assertEqual(container._arguments["test"], argument)
+        self.assertEqual(container._config_args["test"], argument)
 
     def test_add_static_config_argument(self):
         # Given
@@ -39,7 +39,7 @@ class TestConfigContainer(TestCase):
         # Then
         self.assertIsInstance(argument, ConfigArgument)
         self.assertFalse(argument.dynamic)
-        self.assertEqual(container._arguments["test"], argument)
+        self.assertEqual(container._config_args["test"], argument)
 
     def test_add_config_argument_default_dynamic(self):
         # Given
@@ -51,7 +51,7 @@ class TestConfigContainer(TestCase):
         # Then
         self.assertIsInstance(argument, ConfigArgument)
         self.assertFalse(argument.dynamic)
-        self.assertEqual(container._arguments["test"], argument)
+        self.assertEqual(container._config_args["test"], argument)
 
     def test_add_config_group(self):
         # Given
@@ -112,10 +112,27 @@ class TestConfigArgumentParser(TestCase):
 
     @classmethod
     def setUpClass(cls):
-        setup_logging(TEST_APPLICATION_NAME, 'DEBUG', warn_on_overwrite=False)
+        setup_logging(TEST_APPLICATION_NAME, "DEBUG", warn_on_overwrite=False)
 
     def setUp(self):
         print()
+
+    def test_parse_args(self):
+        # Given
+        parser = ConfigArgumentParser(default_section="default")
+        parser.add_argument("--test0", default="test")
+        parser.add_config_argument("--test1", default=None)
+        parser.add_argument("--test2", type=int)
+        parser.add_config_argument("--test3", type=int, dynamic=True)
+
+        # When
+        args = parser.parse_args(["--test0", "value0", "--test1", "value1", "--test2", "1234", "--test3", "5678"])
+
+        # Then
+        self.assertEqual(args.test0, "value0")
+        self.assertEqual(args.test1, "value1")
+        self.assertEqual(args.test2, 1234)
+        self.assertEqual(args.test3, 5678)
 
     def test_get_defaults_includes_group_actions(self):
         # Given
@@ -127,6 +144,7 @@ class TestConfigArgumentParser(TestCase):
         group = parser.add_config_group("group1")
         group.add_config_argument("--test3", default=None)
         group.add_config_argument("--test4", default=".", type=str)
+        group.add_argument("--test5", default=1234, type=int)
 
         # When
         defaults = parser.get_defaults()
@@ -135,11 +153,11 @@ class TestConfigArgumentParser(TestCase):
         self.assertIn("test0", defaults)
         self.assertEqual(defaults["test0"], "test")
         self.assertNotIn("test1", defaults)
-        self.assertIn("test2", defaults)
-        self.assertEqual(defaults["test2"], 1)
+        self.assertNotIn("test2", defaults)
         self.assertNotIn("test3", defaults)
-        self.assertIn("test4", defaults)
-        self.assertEqual(defaults["test4"], ".")
+        self.assertNotIn("test4", defaults)
+        self.assertIn("test5", defaults)
+        self.assertEqual(defaults["test5"], 1234)
 
     def test_default_config_includes_group_sections(self):
         # Given
@@ -215,7 +233,7 @@ test2 = value2
         self.assertEqual(namespace.regular_in_config_group, "regular_config_default")
         self.assertEqual(namespace.static_grouped, "new_static")
         self.assertEqual(namespace.dynamic_grouped, 5)
-        self.assertEqual(namespace.omitted_default, "fallback")
+        self.assertFalse(hasattr(namespace, "omitted_default"))
         self.assertFalse(hasattr(namespace, "omitted_no_default"))
         self.assertFalse(hasattr(namespace, "unknown"))
         self.assertTrue(namespace.boolean_optional_true)

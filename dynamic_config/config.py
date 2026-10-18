@@ -53,7 +53,7 @@ class Config(ABC):
     def snapshot(self) -> Namespace: ...
 
     @abstractmethod
-    def refresh(self) -> None: ...
+    def refresh(self, dynamic_only: bool = True) -> None: ...
 
     @abstractmethod
     def register(self, handler: OnConfigChangeEvent) -> None: ...
@@ -91,8 +91,8 @@ class ConfigBuilder:
         return DynamicConfig(self._cache, self._parser, self._watcher, self._sources)
 
     def _add_source(self, source: ConfigSource) -> "ConfigBuilder":
-            self._sources.append(source)
-            return self
+        self._sources.append(source)
+        return self
 
 
 class DynamicConfig(Config):
@@ -112,7 +112,7 @@ class DynamicConfig(Config):
         self.log = get_logger(type(self).__name__)
 
     def initialize(self) -> None:
-        self.refresh()
+        self.refresh(dynamic_only=False)
         self._watcher.register(self._on_config_file_change)
         self._watcher.start()
 
@@ -127,17 +127,21 @@ class DynamicConfig(Config):
     def snapshot(self) -> Namespace:
         return self._cache.snapshot()
 
-    def refresh(self) -> None:
+    def refresh(self, dynamic_only: bool = True) -> None:
         old_config: dict[str, Any] = dict(self._cache.snapshot().values())
         new_config: dict[str, Any] = {}
 
         for source in self._sources:
-            new_config.update(source.get_config())
+            new_config.update(vars(source.get_config()))
 
         update: dict[str, Any] = old_config
 
-        for key in self._parser.get_dynamic_arguments().keys():
-            if key in new_config:
+        if dynamic_only:
+            for key in self._parser.get_dynamic_arguments().keys():
+                if key in new_config:
+                    update[key] = new_config[key]
+        else:
+            for key in new_config:
                 update[key] = new_config[key]
 
         self._cache.update(update)
@@ -145,7 +149,7 @@ class DynamicConfig(Config):
     def register(self, handler: OnConfigChangeEvent) -> None:
         if handler not in self._handlers:
             self._handlers.append(handler)
-    
+
     def deregister(self, handler: OnConfigChangeEvent) -> None:
         if handler in self._handlers:
             self._handlers.remove(handler)
@@ -164,4 +168,3 @@ class DynamicConfig(Config):
         if changes:
             for handler in self._handlers:
                 handler(file_path, changes)
-
