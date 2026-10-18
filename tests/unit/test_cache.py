@@ -11,7 +11,7 @@ class TestConfigSnapshot(TestCase):
 
     @classmethod
     def setUpClass(cls):
-        setup_logging(TEST_APPLICATION_NAME, 'DEBUG', warn_on_overwrite=False)
+        setup_logging(TEST_APPLICATION_NAME, "DEBUG", warn_on_overwrite=False)
 
     def setUp(self):
         print()
@@ -88,7 +88,7 @@ class TestConfigCache(TestCase):
 
     @classmethod
     def setUpClass(cls):
-        setup_logging(TEST_APPLICATION_NAME, 'DEBUG', warn_on_overwrite=False)
+        setup_logging(TEST_APPLICATION_NAME, "DEBUG", warn_on_overwrite=False)
 
     def setUp(self):
         print()

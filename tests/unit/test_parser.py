@@ -3,8 +3,7 @@ from unittest import TestCase
 
 from context_logger import setup_logging
 
-from dynamic_config import ConfigArgumentParser, ConfigArgument
-from dynamic_config.parser import ConfigArgumentGroup, ConfigContainer
+from dynamic_config import ConfigArgumentParser, ConfigArgument, ConfigArgumentGroup, ConfigContainer
 from tests.utils import TEST_APPLICATION_NAME
 
 
@@ -153,9 +152,11 @@ class TestConfigArgumentParser(TestCase):
         self.assertIn("test0", defaults)
         self.assertEqual(defaults["test0"], "test")
         self.assertNotIn("test1", defaults)
-        self.assertNotIn("test2", defaults)
+        self.assertIn("test2", defaults)
+        self.assertEqual(defaults["test2"], 1)
         self.assertNotIn("test3", defaults)
-        self.assertNotIn("test4", defaults)
+        self.assertIn("test4", defaults)
+        self.assertEqual(defaults["test4"], ".")
         self.assertIn("test5", defaults)
         self.assertEqual(defaults["test5"], 1234)
 

@@ -12,7 +12,7 @@ class TestDefaultSource(TestCase):
 
     @classmethod
     def setUpClass(cls):
-        setup_logging(TEST_APPLICATION_NAME, 'DEBUG', warn_on_overwrite=False)
+        setup_logging(TEST_APPLICATION_NAME, "DEBUG", warn_on_overwrite=False)
 
     def setUp(self):
         print()
@@ -40,7 +40,7 @@ class TestFileSource(TestCase):
 
     @classmethod
     def setUpClass(cls):
-        setup_logging(TEST_APPLICATION_NAME, 'DEBUG', warn_on_overwrite=False)
+        setup_logging(TEST_APPLICATION_NAME, "DEBUG", warn_on_overwrite=False)
 
     def setUp(self):
         print()
@@ -66,7 +66,7 @@ class TestDirectorySource(TestCase):
 
     @classmethod
     def setUpClass(cls):
-        setup_logging(TEST_APPLICATION_NAME, 'DEBUG', warn_on_overwrite=False)
+        setup_logging(TEST_APPLICATION_NAME, "DEBUG", warn_on_overwrite=False)
 
     def setUp(self):
         print()
@@ -74,8 +74,7 @@ class TestDirectorySource(TestCase):
     def test_get_config(self):
         # Given
         parser = MagicMock(spec=Parser)
-        mock_config = MagicMock(spec=Namespace)
-        parser.parse_config.return_value = mock_config
+        parser.parse_config.return_value = MagicMock(spec=Namespace)
         dir_path = TEST_RESOURCE_ROOT / "config" / "test-config.d"
 
         source = DirectorySource(parser, dir_path, pattern="*.conf")
@@ -84,8 +83,8 @@ class TestDirectorySource(TestCase):
         config = source.get_config()
 
         # Then
-        self.assertEqual(config, mock_config)
-        parser.parse_config.assert_called_with(
+        self.assertEqual(config, parser.parse_config.return_value)
+        parser.parse_config.assert_called_once_with(
             {
                 "test1": "another_value",
                 "test2": "5678",
@@ -101,7 +100,7 @@ class TestEnvironmentSource(TestCase):
 
     @classmethod
     def setUpClass(cls):
-        setup_logging(TEST_APPLICATION_NAME, 'DEBUG', warn_on_overwrite=False)
+        setup_logging(TEST_APPLICATION_NAME, "DEBUG", warn_on_overwrite=False)
 
     def setUp(self):
         print()
@@ -131,7 +130,7 @@ class TestArgumentSource(TestCase):
 
     @classmethod
     def setUpClass(cls):
-        setup_logging(TEST_APPLICATION_NAME, 'DEBUG', warn_on_overwrite=False)
+        setup_logging(TEST_APPLICATION_NAME, "DEBUG", warn_on_overwrite=False)
 
     def setUp(self):
         print()

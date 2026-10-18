@@ -1,3 +1,4 @@
+from argparse import Namespace
 from unittest import TestCase
 from unittest.mock import MagicMock
 
@@ -24,7 +25,7 @@ class TestConfigBuilder(TestCase):
 
     @classmethod
     def setUpClass(cls):
-        setup_logging(TEST_APPLICATION_NAME, 'DEBUG', warn_on_overwrite=False)
+        setup_logging(TEST_APPLICATION_NAME, "DEBUG", warn_on_overwrite=False)
 
     def setUp(self):
         print()
@@ -118,7 +119,7 @@ class TestDynamicConfig(TestCase):
 
     @classmethod
     def setUpClass(cls):
-        setup_logging(TEST_APPLICATION_NAME, 'DEBUG', warn_on_overwrite=False)
+        setup_logging(TEST_APPLICATION_NAME, "DEBUG", warn_on_overwrite=False)
 
     def setUp(self):
         print()
@@ -193,14 +194,17 @@ class TestDynamicConfig(TestCase):
             "test5": MagicMock(spec=ConfigArgument),
         }
         source1 = MagicMock(spec=ConfigSource)
-        source1.get_config.return_value = {
-            "test1": "value1-1",
-            "test2": "value2-1",
-            "test3": "value3",
-            "test4": "value4-1",
-        }
+        source1.get_config.return_value = Namespace(
+            test1="value1-1",
+            test2="value2-1",
+            test3="value3",
+            test4="value4-1",
+        )
         source2 = MagicMock(spec=ConfigSource)
-        source2.get_config.return_value = {"test3": "value3-2", "test4": "value4-2"}
+        source2.get_config.return_value = Namespace(
+            test3="value3-2",
+            test4="value4-2",
+        )
         sources: list[ConfigSource] = [source1, source2]
         config = DynamicConfig(cache, parser, MagicMock(spec=Watcher), sources)
 

@@ -5,6 +5,7 @@
 import os
 import glob
 from pathlib import Path
+from typing import Any
 from dynamic_config import Parser
 from argparse import ArgumentParser, Namespace
 from abc import ABC, abstractmethod
@@ -34,26 +35,31 @@ class DefaultSource(ConfigSource):
 
 class FileSource(ConfigSource):
 
-    def __init__(self, parser: Parser, file_path: str | Path) -> None:
+    def __init__(self, parser: Parser, path: str | Path) -> None:
         self._parser = parser
-        self._file_path = Path(file_path)
+        self._path = Path(path)
         self.log = get_logger(type(self).__name__)
 
     def get_config(self) -> Namespace:
-        self.log.debug("Fetching configuration from file", file=self._file_path)
+        self.log.debug("Fetching configuration from file", file=self._path)
 
+        config = self._get_file_config(self._path)
+
+        return self._parser.parse_config(config)
+
+    def _get_file_config(self, path: str | Path) -> dict[str, Any]:
         file_parser = ConfigParser(interpolation=None)
-        file_parser.read(self._file_path)
+        file_parser.read(path)
 
         config = {}
         for section in file_parser.sections():
             for key, value in file_parser.items(section):
                 config[key] = value
 
-        return self._parser.parse_config(config)
+        return config
 
 
-class DirectorySource(ConfigSource):
+class DirectorySource(FileSource):
 
     def __init__(
         self,
@@ -76,9 +82,8 @@ class DirectorySource(ConfigSource):
         file_paths = sorted(glob.glob(str(self._dir_path / self._pattern), recursive=self._recursive))
 
         for file_path in file_paths:
-            file_source = FileSource(self._parser, file_path)
-            file_config = file_source.get_config()
-            config.update(vars(file_config))
+            file_config = self._get_file_config(file_path)
+            config.update(file_config)
 
         return self._parser.parse_config(config)
 

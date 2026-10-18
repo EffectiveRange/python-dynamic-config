@@ -1,5 +1,5 @@
 from threading import Event
-from common_utility import append_file, create_file
+from common_utility import append_file, create_file, delete_directory
 from context_logger import setup_logging
 from watchdog.observers import Observer
 
@@ -7,8 +7,7 @@ from unittest.mock import MagicMock
 
 from unittest import TestCase
 
-from dynamic_config import ConfigWatcher
-from dynamic_config.watcher import OnConfigFileChanged
+from dynamic_config import ConfigWatcher, OnConfigFileChanged
 from tests.utils import TEST_APPLICATION_NAME, TEST_FILE_SYSTEM_ROOT
 
 
@@ -20,6 +19,7 @@ class TestConfigFileWatching(TestCase):
 
     def setUp(self):
         print()
+        delete_directory(TEST_FILE_SYSTEM_ROOT)
 
     def test_config_file_watch(self):
         # Given

@@ -27,11 +27,11 @@ class TestConfigUpdateHandling(TestCase):
         changed = Event()
         cache = ConfigCache()
         parser = ConfigArgumentParser()
-        parser.add_config_argument("dynamic_default_str", dynamic=True, default="value")
-        parser.add_config_argument("default_int", type=int, default=0)
+        parser.add_config_argument("--dynamic-default-str", dynamic=True, default="value")
+        parser.add_config_argument("--default-int", type=int, default=0)
         group1 = parser.add_config_group("section1")
-        group1.add_config_argument("dynamic_default_bool", dynamic=True, action=BooleanOptionalAction, default=False)
-        group1.add_config_argument("dynamic_int", type=int, dynamic=True)
+        group1.add_config_argument("--dynamic-default-bool", dynamic=True, action=BooleanOptionalAction, default=False)
+        group1.add_config_argument("--dynamic-int", type=int, dynamic=True)
 
         config_file = TEST_FILE_SYSTEM_ROOT / "config" / "test.conf"
         create_file(
