@@ -257,6 +257,22 @@ class TestDynamicConfig(TestCase):
         # Then
         self.assertIn(handler, config._handlers)
 
+    def test_register_duplicate(self):
+        # Given
+        cache = MagicMock(spec=Cache)
+        parser = MagicMock(spec=Parser)
+        watcher = MagicMock(spec=Watcher)
+        sources: list[Source] = []
+        config = DynamicConfig(cache, parser, watcher, sources)
+        handler = MagicMock(spec=OnConfigChangeEvent)
+        config.register(handler)
+
+        # When
+        config.register(handler)
+
+        # Then
+        self.assertEqual(config._handlers.count(handler), 1)
+
     def test_deregister(self):
         # Given
         cache = MagicMock(spec=Cache)
@@ -266,6 +282,21 @@ class TestDynamicConfig(TestCase):
         config = DynamicConfig(cache, parser, watcher, sources)
         handler = MagicMock(spec=OnConfigChangeEvent)
         config._handlers.append(handler)
+
+        # When
+        config.deregister(handler)
+
+        # Then
+        self.assertNotIn(handler, config._handlers)
+
+    def test_deregister_nonexistent(self):
+        # Given
+        cache = MagicMock(spec=Cache)
+        parser = MagicMock(spec=Parser)
+        watcher = MagicMock(spec=Watcher)
+        sources: list[Source] = []
+        config = DynamicConfig(cache, parser, watcher, sources)
+        handler = MagicMock(spec=OnConfigChangeEvent)
 
         # When
         config.deregister(handler)

@@ -7,7 +7,7 @@ from unittest.mock import MagicMock
 
 from unittest import TestCase
 
-from dynamic_config import ConfigWatcher, OnConfigFileChanged
+from dynamic_config import FileWatcher, OnFileChanged
 from tests.utils import TEST_APPLICATION_NAME, TEST_FILE_SYSTEM_ROOT
 
 
@@ -24,11 +24,11 @@ class TestConfigFileWatching(TestCase):
     def test_config_file_watch(self):
         # Given
         changed = Event()
-        handler = MagicMock(spec=OnConfigFileChanged)
+        handler = MagicMock(spec=OnFileChanged)
         handler.side_effect = lambda config_path: changed.set()
         observer = Observer()
 
-        with ConfigWatcher(observer) as watcher:
+        with FileWatcher(observer) as watcher:
             watcher.register(handler)
 
             dummy_file = TEST_FILE_SYSTEM_ROOT / "dummy.conf"
@@ -47,11 +47,11 @@ class TestConfigFileWatching(TestCase):
     def test_config_directory_watch(self):
         # Given
         changed = Event()
-        handler = MagicMock(spec=OnConfigFileChanged)
+        handler = MagicMock(spec=OnFileChanged)
         handler.side_effect = lambda config_path: changed.set()
         observer = Observer()
 
-        with ConfigWatcher(observer) as watcher:
+        with FileWatcher(observer) as watcher:
             watcher.register(handler)
 
             dummy_dir = TEST_FILE_SYSTEM_ROOT / "dummy_dir"

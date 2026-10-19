@@ -21,7 +21,7 @@ from dynamic_config import (
     ArgumentSource,
     Cache,
     ConfigCache,
-    ConfigWatcher,
+    FileWatcher,
     Watcher,
 )
 
@@ -67,7 +67,7 @@ class ConfigBuilder:
     def __init__(self, parser: ConfigArgumentParser):
         self._cache = ConfigCache()
         self._parser = parser
-        self._watcher = ConfigWatcher(Observer())
+        self._watcher = FileWatcher(Observer())
         self._sources: list[Source] = []
 
     def with_defaults(self) -> "ConfigBuilder":
@@ -112,11 +112,13 @@ class DynamicConfig(Config):
         self.log = get_logger(type(self).__name__)
 
     def initialize(self) -> None:
+        self.log.debug("Initializing configuration")
         self.refresh(dynamic_only=False)
         self._watcher.register(self._on_config_file_change)
         self._watcher.start()
 
     def deinitialize(self) -> None:
+        self.log.debug("Deinitializing configuration")
         self._watcher.deregister(self._on_config_file_change)
         self._watcher.stop()
         self._cache.clear()
@@ -128,6 +130,8 @@ class DynamicConfig(Config):
         return self._cache.snapshot()
 
     def refresh(self, dynamic_only: bool = True) -> None:
+        self.log.debug("Refreshing configuration", dynamic_only=dynamic_only)
+
         new_config: dict[str, Any] = {}
 
         for source in self._sources:
@@ -155,7 +159,9 @@ class DynamicConfig(Config):
 
     def _on_config_file_change(self, file_path: str) -> None:
         old_config: dict[str, Any] = dict(self.snapshot().values())
+
         self.refresh()
+
         new_config: dict[str, Any] = dict(self.snapshot().values())
 
         changes: dict[str, ConfigChange] = {}
@@ -165,5 +171,8 @@ class DynamicConfig(Config):
                 changes[key] = ConfigChange(config_key=key, old_value=old_value, new_value=new_value)
 
         if changes:
+            self.log.debug("Configuration changes detected", changes=changes)
             for handler in self._handlers:
                 handler(file_path, changes)
+        else:
+            self.log.debug("No configuration changes detected")

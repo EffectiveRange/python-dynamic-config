@@ -8,6 +8,8 @@ from typing import Any, cast
 
 from argparse import Namespace
 
+from context_logger import get_logger
+
 
 class Snapshot(ABC):
 
@@ -24,13 +26,13 @@ class Cache(ABC):
     def snapshot(self) -> Namespace: ...
 
     @abstractmethod
-    def update(self, values: dict[str, Any]) -> None: ...
+    def update(self, values: dict[str, Any]) -> "Cache": ...
 
     @abstractmethod
-    def replace(self, values: dict[str, Any]) -> None: ...
+    def replace(self, values: dict[str, Any]) -> "Cache": ...
 
     @abstractmethod
-    def clear(self) -> None: ...
+    def clear(self) -> "Cache": ...
 
 
 class ConfigSnapshot(Snapshot, Namespace):
@@ -63,11 +65,15 @@ class ConfigSnapshot(Snapshot, Namespace):
 
 
 class ConfigCache(Cache, Namespace):
+    SNAPSHOT_ATTR = "__snapshot"
+    LOG_ATTR = "__log"
+
     def __init__(self, initial: dict[str, Any] | None = None) -> None:
-        object.__setattr__(self, "_snapshot", ConfigSnapshot(initial or {}))
+        object.__setattr__(self, self.SNAPSHOT_ATTR, ConfigSnapshot(initial or {}))
+        object.__setattr__(self, self.LOG_ATTR, get_logger(type(self).__name__))
 
     def __getattr__(self, name: str) -> Any:
-        return getattr(self._snapshot, name)
+        return getattr(self._get_snapshot(), name)
 
     def __setattr__(self, name: str, value: Any) -> None:
         raise AttributeError("ConfigCache is read-only; configuration is updated by the update() method")
@@ -75,24 +81,35 @@ class ConfigCache(Cache, Namespace):
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, Namespace):
             return NotImplemented
-        return bool(self._snapshot._values == vars(other))
+        return bool(self._get_snapshot()._values == vars(other))
 
     def __contains__(self, key: object) -> bool:
-        return key in self._snapshot._values
+        return key in self._get_snapshot()._values
 
     def get(self) -> Namespace:
         return self
 
     def snapshot(self) -> Namespace:
-        return cast(Namespace, self._snapshot)
+        return cast(Namespace, getattr(self, self.SNAPSHOT_ATTR))
 
-    def update(self, values: dict[str, Any]) -> None:
-        current_values: dict[str, Any] = self._snapshot._values
-        updated_values = current_values | values
-        object.__setattr__(self, "_snapshot", ConfigSnapshot(updated_values))
+    def update(self, values: dict[str, Any]) -> "Cache":
+        self._log().debug("Updating cache", values=values)
+        return self._set_snapshot(self._get_snapshot()._values | values)
 
-    def replace(self, values: dict[str, Any]) -> None:
-        object.__setattr__(self, "_snapshot", ConfigSnapshot(values))
+    def replace(self, values: dict[str, Any]) -> "Cache":
+        self._log().debug("Replacing cache", values=values)
+        return self._set_snapshot(values)
 
-    def clear(self) -> None:
-        object.__setattr__(self, "_snapshot", ConfigSnapshot({}))
+    def clear(self) -> "Cache":
+        self._log().debug("Clearing cache")
+        return self._set_snapshot({})
+
+    def _set_snapshot(self, values: dict[str, Any]) -> "Cache":
+        object.__setattr__(self, self.SNAPSHOT_ATTR, ConfigSnapshot(values))
+        return self
+
+    def _get_snapshot(self) -> ConfigSnapshot:
+        return cast(ConfigSnapshot, getattr(self, self.SNAPSHOT_ATTR))
+
+    def _log(self) -> Any:
+        return getattr(self, self.LOG_ATTR)

@@ -8,7 +8,7 @@ from dynamic_config.cache import ConfigCache
 from dynamic_config.config import DynamicConfig
 from dynamic_config.parser import ConfigArgumentParser
 from dynamic_config.source import ArgumentSource, DefaultSource, FileSource, DirectorySource
-from dynamic_config.watcher import ConfigWatcher
+from dynamic_config.watcher import FileWatcher
 from tests.utils import TEST_APPLICATION_NAME, TEST_FILE_SYSTEM_ROOT
 
 
@@ -49,7 +49,7 @@ dynamic_int = 5678
 
         config_dir = TEST_FILE_SYSTEM_ROOT / "config" / "test.conf.d"
         create_directory(config_dir)
-        watcher = ConfigWatcher(Observer())
+        watcher = FileWatcher(Observer())
         watcher.watch(config_file)
         watcher.watch(config_dir)
         sources = [

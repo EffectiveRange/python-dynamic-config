@@ -41,13 +41,13 @@ class FileSource(Source):
         self.log = get_logger(type(self).__name__)
 
     def get_config(self) -> Namespace:
-        self.log.debug("Fetching configuration from file", file=self._path)
-
         config = self._get_file_config(self._path)
 
         return self._parser.parse_config(config)
 
     def _get_file_config(self, path: str | Path) -> dict[str, Any]:
+        self.log.debug("Fetching configuration from file", file=path)
+
         file_parser = ConfigParser(interpolation=None)
         file_parser.read(path)
 
@@ -64,22 +64,20 @@ class DirectorySource(FileSource):
     def __init__(
         self,
         parser: Parser,
-        dir_path: str | Path,
+        path: str | Path,
         pattern: str = "*.conf",
         recursive: bool = False,
     ) -> None:
-        self._parser = parser
-        self._dir_path = Path(dir_path)
+        super().__init__(parser, path)
         self._pattern = pattern
         self._recursive = recursive
-        self.log = get_logger(type(self).__name__)
 
     def get_config(self) -> Namespace:
-        self.log.debug("Fetching configuration from directory", dir=self._dir_path, pattern=self._pattern)
+        self.log.debug("Fetching configuration from directory", dir=self._path, pattern=self._pattern)
 
         config = {}
 
-        file_paths = sorted(glob.glob(str(self._dir_path / self._pattern), recursive=self._recursive))
+        file_paths = sorted(glob.glob(str(self._path / self._pattern), recursive=self._recursive))
 
         for file_path in file_paths:
             file_config = self._get_file_config(file_path)

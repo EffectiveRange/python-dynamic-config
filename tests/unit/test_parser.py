@@ -1,4 +1,4 @@
-from argparse import BooleanOptionalAction
+from argparse import SUPPRESS, BooleanOptionalAction
 from unittest import TestCase
 
 from context_logger import setup_logging
@@ -122,7 +122,7 @@ class TestConfigArgumentParser(TestCase):
         parser.add_argument("--test0", default="test")
         parser.add_config_argument("--test1", default=None)
         parser.add_argument("--test2", type=int)
-        parser.add_config_argument("--test3", type=int, dynamic=True)
+        parser.add_config_argument("--test3", type=int, dynamic=True, default=SUPPRESS)
 
         # When
         args = parser.parse_args(["--test0", "value0", "--test1", "value1", "--test2", "1234", "--test3", "5678"])
@@ -141,7 +141,7 @@ class TestConfigArgumentParser(TestCase):
         parser.add_config_argument("--test1", default=None)
         parser.add_config_argument("--test2", default=1, type=int)
         group = parser.add_config_group("group1")
-        group.add_config_argument("--test3", default=None)
+        group.add_config_argument("--test3", default=SUPPRESS)
         group.add_config_argument("--test4", default=".", type=str)
         group.add_argument("--test5", default=1234, type=int)
 
@@ -168,6 +168,8 @@ class TestConfigArgumentParser(TestCase):
         parser.add_config_argument("--test1", default="value1")
         group = parser.add_config_group("group1")
         group.add_config_argument("--test2", default="value2")
+        group.add_config_argument("--test3", default=SUPPRESS)
+        group.add_config_argument("--test4", default="value4")
 
         # When
         defaults = parser.default_config(print_to_console=True)
@@ -180,6 +182,7 @@ test1 = value1
 
 [group1]
 test2 = value2
+test4 = value4
 
 """,
             f"\n{defaults}",

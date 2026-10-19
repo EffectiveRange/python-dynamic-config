@@ -18,6 +18,8 @@ from dataclasses import dataclass
 from io import StringIO
 from typing import Any
 
+from context_logger import get_logger
+
 
 @dataclass
 class ConfigArgument:
@@ -107,12 +109,17 @@ class ConfigArgumentParser(Parser, ArgumentParser, ConfigContainer):
         kwargs.setdefault("formatter_class", ArgumentDefaultsHelpFormatter)
         ArgumentParser.__init__(self, *args, **kwargs)
         ConfigContainer.__init__(self, default_section, *args, **kwargs)
+        self.log = get_logger(type(self).__name__)
 
     def get_defaults(self) -> dict[str, Any]:
-        defaults = self._get_defaults(self)
+        defaults = {}
 
-        for group in self._action_groups:
-            defaults.update(self._get_defaults(group))
+        for action in self._actions:
+            if action.dest in self._config_args:
+                if (default := self._config_args[action.dest].default) not in (SUPPRESS, None):
+                    defaults[action.dest] = default
+            elif action.default not in (SUPPRESS, None):
+                defaults[action.dest] = action.default
 
         return defaults
 
@@ -156,16 +163,6 @@ class ConfigArgumentParser(Parser, ArgumentParser, ConfigContainer):
                     option = argument.action.option_strings[0]
                     args.extend([option, value])
 
+        self.log.debug("Parsing configuration as arguments", config=config, args=args)
+
         return self.parse_args(args)
-
-    def _get_defaults(self, container: _ActionsContainer) -> dict[str, Any]:
-        defaults = {}
-
-        for action in container._actions:
-            if action.dest in self._config_args:
-                if (default := self._config_args[action.dest].default) is not None:
-                    defaults[action.dest] = default
-            elif action.default not in (SUPPRESS, None):
-                defaults[action.dest] = action.default
-
-        return defaults

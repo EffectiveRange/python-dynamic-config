@@ -4,7 +4,7 @@ from unittest.mock import MagicMock
 from pathlib import Path
 from unittest import TestCase
 
-from dynamic_config import ConfigWatcher
+from dynamic_config import FileWatcher
 from tests.utils import TEST_APPLICATION_NAME
 
 
@@ -12,7 +12,7 @@ class TestConfigWatcher(TestCase):
 
     @classmethod
     def setUpClass(cls):
-        setup_logging(TEST_APPLICATION_NAME, 'DEBUG', warn_on_overwrite=False)
+        setup_logging(TEST_APPLICATION_NAME, "DEBUG", warn_on_overwrite=False)
 
     def setUp(self):
         print()
@@ -20,7 +20,7 @@ class TestConfigWatcher(TestCase):
     def test_register(self):
         # Given
         observer = MagicMock(spec=BaseObserver)
-        watcher = ConfigWatcher(observer)
+        watcher = FileWatcher(observer)
         handler = MagicMock()
 
         # When
@@ -29,12 +29,37 @@ class TestConfigWatcher(TestCase):
         # Then
         self.assertIn(handler, watcher._handlers)
 
+    def test_register_duplicate(self):
+        # Given
+        observer = MagicMock(spec=BaseObserver)
+        watcher = FileWatcher(observer)
+        handler = MagicMock()
+        watcher.register(handler)
+
+        # When
+        watcher.register(handler)
+
+        # Then
+        self.assertEqual(watcher._handlers.count(handler), 1)
+
     def test_deregister(self):
         # Given
         observer = MagicMock(spec=BaseObserver)
-        watcher = ConfigWatcher(observer)
+        watcher = FileWatcher(observer)
         handler = MagicMock()
         watcher.register(handler)
+
+        # When
+        watcher.deregister(handler)
+
+        # Then
+        self.assertNotIn(handler, watcher._handlers)
+
+    def test_deregister_nonexistent(self):
+        # Given
+        observer = MagicMock(spec=BaseObserver)
+        watcher = FileWatcher(observer)
+        handler = MagicMock()
 
         # When
         watcher.deregister(handler)
@@ -45,7 +70,7 @@ class TestConfigWatcher(TestCase):
     def test_watch(self):
         # Given
         observer = MagicMock(spec=BaseObserver)
-        watcher = ConfigWatcher(observer)
+        watcher = FileWatcher(observer)
         path = "/some/path"
 
         # When
@@ -55,10 +80,23 @@ class TestConfigWatcher(TestCase):
         self.assertIn(path, watcher._watches)
         observer.schedule.assert_called_once_with(watcher, path, recursive=True)
 
+    def test_watch_duplicate(self):
+        # Given
+        observer = MagicMock(spec=BaseObserver)
+        watcher = FileWatcher(observer)
+        path = "/some/path"
+        watcher.watch(Path(path))
+
+        # When
+        watcher.watch(Path(path))
+
+        # Then
+        self.assertEqual(list(watcher._watches.keys()).count(path), 1)
+
     def test_unwatch(self):
         # Given
         observer = MagicMock(spec=BaseObserver)
-        watcher = ConfigWatcher(observer)
+        watcher = FileWatcher(observer)
         path = "/some/path"
         watcher.watch(Path(path))
 
@@ -69,10 +107,22 @@ class TestConfigWatcher(TestCase):
         self.assertNotIn(path, watcher._watches)
         observer.unschedule.assert_called_once()
 
+    def test_unwatch_nonexistent(self):
+        # Given
+        observer = MagicMock(spec=BaseObserver)
+        watcher = FileWatcher(observer)
+        path = "/some/path"
+
+        # When
+        watcher.unwatch(path)
+
+        # Then
+        self.assertNotIn(path, watcher._watches)
+
     def test_start(self):
         # Given
         observer = MagicMock(spec=BaseObserver)
-        watcher = ConfigWatcher(observer)
+        watcher = FileWatcher(observer)
 
         path = "/some/path"
         watcher.watch(Path(path))
@@ -88,7 +138,7 @@ class TestConfigWatcher(TestCase):
     def test_stop(self):
         # Given
         observer = MagicMock(spec=BaseObserver)
-        watcher = ConfigWatcher(observer)
+        watcher = FileWatcher(observer)
 
         path = "/some/path"
         watcher.watch(Path(path))
@@ -104,7 +154,7 @@ class TestConfigWatcher(TestCase):
     def test_on_any_event_when_created(self):
         # Given
         observer = MagicMock(spec=BaseObserver)
-        watcher = ConfigWatcher(observer)
+        watcher = FileWatcher(observer)
         handler = MagicMock()
         watcher.register(handler)
         event = MagicMock()
@@ -121,7 +171,7 @@ class TestConfigWatcher(TestCase):
     def test_on_any_event_when_modified(self):
         # Given
         observer = MagicMock(spec=BaseObserver)
-        watcher = ConfigWatcher(observer)
+        watcher = FileWatcher(observer)
         handler = MagicMock()
         watcher.register(handler)
         event = MagicMock()
@@ -138,7 +188,7 @@ class TestConfigWatcher(TestCase):
     def test_on_any_event_when_moved(self):
         # Given
         observer = MagicMock(spec=BaseObserver)
-        watcher = ConfigWatcher(observer)
+        watcher = FileWatcher(observer)
         handler = MagicMock()
         watcher.register(handler)
         event = MagicMock()
@@ -155,7 +205,7 @@ class TestConfigWatcher(TestCase):
     def test_on_any_event_when_deleted(self):
         # Given
         observer = MagicMock(spec=BaseObserver)
-        watcher = ConfigWatcher(observer)
+        watcher = FileWatcher(observer)
         handler = MagicMock()
         watcher.register(handler)
         event = MagicMock()
@@ -172,7 +222,7 @@ class TestConfigWatcher(TestCase):
     def test_on_any_event_when_unhandled_event_type(self):
         # Given
         observer = MagicMock(spec=BaseObserver)
-        watcher = ConfigWatcher(observer)
+        watcher = FileWatcher(observer)
         handler = MagicMock()
         watcher.register(handler)
         event = MagicMock()
@@ -189,7 +239,7 @@ class TestConfigWatcher(TestCase):
     def test_on_any_event_when_directory(self):
         # Given
         observer = MagicMock(spec=BaseObserver)
-        watcher = ConfigWatcher(observer)
+        watcher = FileWatcher(observer)
         handler = MagicMock()
         watcher.register(handler)
         event = MagicMock()
