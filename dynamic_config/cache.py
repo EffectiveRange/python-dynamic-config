@@ -27,6 +27,9 @@ class Cache(ABC):
     def update(self, values: dict[str, Any]) -> None: ...
 
     @abstractmethod
+    def replace(self, values: dict[str, Any]) -> None: ...
+
+    @abstractmethod
     def clear(self) -> None: ...
 
 
@@ -84,6 +87,11 @@ class ConfigCache(Cache, Namespace):
         return cast(Namespace, self._snapshot)
 
     def update(self, values: dict[str, Any]) -> None:
+        current_values: dict[str, Any] = self._snapshot._values
+        updated_values = current_values | values
+        object.__setattr__(self, "_snapshot", ConfigSnapshot(updated_values))
+
+    def replace(self, values: dict[str, Any]) -> None:
         object.__setattr__(self, "_snapshot", ConfigSnapshot(values))
 
     def clear(self) -> None:

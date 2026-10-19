@@ -44,7 +44,7 @@ class Config(ABC):
     def initialize(self) -> None: ...
 
     @abstractmethod
-    def destroy(self) -> None: ...
+    def deinitialize(self) -> None: ...
 
     @abstractmethod
     def get(self) -> Namespace: ...
@@ -116,7 +116,7 @@ class DynamicConfig(Config):
         self._watcher.register(self._on_config_file_change)
         self._watcher.start()
 
-    def destroy(self) -> None:
+    def deinitialize(self) -> None:
         self._watcher.deregister(self._on_config_file_change)
         self._watcher.stop()
         self._cache.clear()
@@ -128,13 +128,12 @@ class DynamicConfig(Config):
         return self._cache.snapshot()
 
     def refresh(self, dynamic_only: bool = True) -> None:
-        old_config: dict[str, Any] = dict(self._cache.snapshot().values())
         new_config: dict[str, Any] = {}
 
         for source in self._sources:
             new_config.update(vars(source.get_config()))
 
-        update: dict[str, Any] = old_config
+        update: dict[str, Any] = {}
 
         if dynamic_only:
             for key in self._parser.get_dynamic_arguments().keys():
@@ -155,9 +154,9 @@ class DynamicConfig(Config):
             self._handlers.remove(handler)
 
     def _on_config_file_change(self, file_path: str) -> None:
-        old_config: dict[str, Any] = dict(self._cache.snapshot().values())
+        old_config: dict[str, Any] = dict(self.snapshot().values())
         self.refresh()
-        new_config: dict[str, Any] = dict(self._cache.snapshot().values())
+        new_config: dict[str, Any] = dict(self.snapshot().values())
 
         changes: dict[str, ConfigChange] = {}
         for key, new_value in new_config.items():
