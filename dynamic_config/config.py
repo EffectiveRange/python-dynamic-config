@@ -65,10 +65,10 @@ class Config(ABC):
 
 class ConfigBuilder:
 
-    def __init__(self, parser: ConfigArgumentParser):
+    def __init__(self, parser: ConfigArgumentParser, max_watcher_workers: int = 4):
         self._cache = ConfigCache()
         self._parser = parser
-        self._watcher = FileWatcher(Observer())
+        self._watcher = FileWatcher(Observer(), max_workers=max_watcher_workers)
         self._sources: list[Source] = []
 
     def with_defaults(self) -> "ConfigBuilder":
@@ -88,8 +88,8 @@ class ConfigBuilder:
     def with_arguments(self) -> "ConfigBuilder":
         return self._add_source(ArgumentSource(self._parser))
 
-    def build(self, max_workers: int = 4) -> "DynamicConfig":
-        return DynamicConfig(self._cache, self._parser, self._watcher, self._sources, max_workers=max_workers)
+    def build(self, max_handler_workers: int = 4) -> "DynamicConfig":
+        return DynamicConfig(self._cache, self._parser, self._watcher, self._sources, max_workers=max_handler_workers)
 
     def _add_source(self, source: Source) -> "ConfigBuilder":
         self._sources.append(source)
@@ -121,7 +121,7 @@ class DynamicConfig(Config):
         self._watcher.start()
 
     def deinitialize(self) -> None:
-        self.log.debug("Deinitializing configuration")
+        self.log.debug("De-initializing configuration")
         self._watcher.deregister(self._on_config_file_change)
         self._watcher.stop()
         self._cache.clear()
