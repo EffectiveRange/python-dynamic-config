@@ -5,12 +5,12 @@
 | Name                            |    Stmts |     Miss |   Branch |   BrPart |   Cover |   Missing |
 |-------------------------------- | -------: | -------: | -------: | -------: | ------: | --------: |
 | dynamic\_config/\_\_init\_\_.py |        5 |        0 |        0 |        0 |    100% |           |
-| dynamic\_config/cache.py        |       26 |       12 |        0 |        0 |     54% |10, 17-20, 23, 26, 31, 34, 37, 42, 45 |
-| dynamic\_config/config.py       |       39 |       20 |        2 |        0 |     46% |20-22, 25, 28, 33, 36, 39, 42-43, 46, 57-59, 62, 65, 68-73 |
-| dynamic\_config/parser.py       |       74 |        6 |       28 |        4 |     86% |84-\>79, 90-\>93, 99-\>102, 112-119 |
-| dynamic\_config/source.py       |       66 |        0 |        6 |        0 |    100% |           |
-| dynamic\_config/watcher.py      |        3 |        1 |        0 |        0 |     67% |         3 |
-| **TOTAL**                       |  **213** |   **39** |   **36** |    **4** | **80%** |           |
+| dynamic\_config/cache.py        |       69 |        1 |        6 |        0 |     99% |        84 |
+| dynamic\_config/config.py       |      140 |        2 |       32 |        2 |     98% |  126, 185 |
+| dynamic\_config/parser.py       |      130 |        2 |       40 |        1 |     98% |199-\>205, 202-203 |
+| dynamic\_config/source.py       |       64 |        0 |        6 |        0 |    100% |           |
+| dynamic\_config/watcher.py      |      129 |        4 |       42 |        4 |     95% |76, 94, 133, 197 |
+| **TOTAL**                       |  **537** |    **9** |  **126** |    **7** | **98%** |           |
 
 
 ## Setup coverage badge
