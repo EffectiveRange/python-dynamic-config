@@ -1,0 +1,61 @@
+[project]
+name = "python-dynamic-config"
+description = "A Python library for loading configuration into a dynamic cache that is updated runtime on config file changes"
+authors = [
+    { name = "Ferenc Nandor Janky & Attila Gombos", email = "info@effective-range.com" }
+]
+maintainers = [
+    { name = "Ferenc Nandor Janky & Attila Gombos", email = "info@effective-range.com" }
+]
+dependencies = [
+    "watchdog",
+    "python-context-logger @ git+https://github.com/EffectiveRange/python-context-logger.git@latest",
+    "python-common-utility @ git+https://github.com/EffectiveRange/python-common-utility.git@v1.8.0"
+]
+dynamic = ["version"]
+
+[project.optional-dependencies]
+test = [
+    "pytest>=7.0",
+    "pytest-console-scripts",
+    "pytest-coverage",
+    "coverage>=7.2",
+]
+
+lint = [
+    "flake8",
+    "mypy",
+]
+
+dev = [
+    "pytest>=7.0",
+    "pytest-console-scripts",
+    "pytest-coverage",
+    "coverage>=7.2",
+    "flake8",
+    "mypy",
+    "black"
+]
+
+[tool.setuptools]
+package-dir = { "" = "." }
+packages = ["dynamic_config", "examples"]
+
+[tool.setuptools.package-data]
+dynamic_config = ["py.typed"]
+
+[build-system]
+requires = ["setuptools>=61", "setuptools_scm"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools_scm]
+version_scheme = "guess-next-dev"
+local_scheme = "node-and-date"
+
+[tool.pytest]
+addopts = ["--verbose", "--capture=no"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+
+[tool.black]
+line-length = 120
