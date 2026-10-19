@@ -320,13 +320,61 @@ class TestDynamicConfig(TestCase):
         config.register(handler)
 
         file_path = "test.conf"
-        changes = {
-            "test1": ConfigChange("test1", "value1", "value1-1"),
-            "test3": ConfigChange("test3", "value3", "value3-1"),
-        }
 
         # When
         config._on_config_file_change(file_path)
 
         # Then
-        handler.assert_called_once_with(file_path, changes)
+        handler.assert_called_once_with(
+            file_path,
+            {
+                "test1": ConfigChange("test1", "value1", "value1-1"),
+                "test3": ConfigChange("test3", "value3", "value3-1"),
+            },
+        )
+
+    def test_on_config_file_change_no_changes(self):
+        # Given
+        cache = MagicMock(spec=Cache)
+        cache.snapshot.return_value.values.side_effect = [
+            {"test1": "value1", "test2": "value2"},
+            {"test1": "value1", "test2": "value2"},
+        ]
+        parser = MagicMock(spec=Parser)
+        watcher = MagicMock(spec=Watcher)
+        sources: list[Source] = []
+        config = DynamicConfig(cache, parser, watcher, sources)
+        handler = MagicMock(spec=OnConfigChangeEvent)
+
+        config.register(handler)
+
+        file_path = "test.conf"
+
+        # When
+        config._on_config_file_change(file_path)
+
+        # Then
+        handler.assert_not_called()
+
+    def test_on_config_file_change_handler_raises_exception(self):
+        # Given
+        cache = MagicMock(spec=Cache)
+        cache.snapshot.return_value.values.side_effect = [
+            {"test1": "value1"},
+            {"test1": "value1-1"},
+        ]
+        parser = MagicMock(spec=Parser)
+        watcher = MagicMock(spec=Watcher)
+        sources: list[Source] = []
+        config = DynamicConfig(cache, parser, watcher, sources)
+        handler = MagicMock(side_effect=Exception("Handler error"))
+
+        config.register(handler)
+
+        file_path = "test.conf"
+
+        # When
+        config._on_config_file_change(file_path)
+
+        # Then
+        handler.assert_called_once_with(file_path, {"test1": ConfigChange("test1", "value1", "value1-1")})

@@ -252,3 +252,20 @@ class TestConfigWatcher(TestCase):
 
         # Then
         handler.assert_not_called()
+
+    def test_on_any_event_when_handler_raises_exception(self):
+        # Given
+        observer = MagicMock(spec=BaseObserver)
+        watcher = FileWatcher(observer)
+        handler = MagicMock(side_effect=Exception("Handler error"))
+        watcher.register(handler)
+        event = MagicMock()
+        event.event_type = "modified"
+        event.is_directory = False
+        event.src_path = "/some/path/config.yaml"
+
+        # When
+        watcher.on_any_event(event)
+
+        # Then
+        handler.assert_called_once_with(str(event.src_path))

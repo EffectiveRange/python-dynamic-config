@@ -5,6 +5,7 @@
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any, Protocol
+from concurrent.futures import ThreadPoolExecutor
 
 from context_logger import get_logger
 from watchdog.events import FileSystemEventHandler, FileSystemEvent
@@ -40,11 +41,12 @@ class Watcher(ABC):
 
 class FileWatcher(Watcher, FileSystemEventHandler):
 
-    def __init__(self, observer: BaseObserver) -> None:
+    def __init__(self, observer: BaseObserver, max_workers: int = 4) -> None:
         super().__init__()
         self._observer = observer
         self._handlers: list[OnFileChanged] = []
         self._watches: dict[str, ObservedWatch] = {}
+        self._executor = ThreadPoolExecutor(max_workers=max_workers)
         self.log = get_logger(type(self).__name__)
 
     def __enter__(self) -> "FileWatcher":
@@ -91,4 +93,10 @@ class FileWatcher(Watcher, FileSystemEventHandler):
             self.log.debug("File changed", file=file_path, change=event.event_type)
 
             for handler in self._handlers:
-                handler(file_path)
+                self._executor.submit(self._execute_handler, handler, file_path)
+
+    def _execute_handler(self, handler: OnFileChanged, file_path: str) -> None:
+        try:
+            handler(file_path)
+        except Exception as error:
+            self.log.warn("Handler failed to process file change", file=file_path, error=error)

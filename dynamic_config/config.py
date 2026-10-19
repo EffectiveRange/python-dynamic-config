@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: MIT
 
 from argparse import Namespace
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
 from context_logger import get_logger
@@ -87,8 +88,8 @@ class ConfigBuilder:
     def with_arguments(self) -> "ConfigBuilder":
         return self._add_source(ArgumentSource(self._parser))
 
-    def build(self) -> "DynamicConfig":
-        return DynamicConfig(self._cache, self._parser, self._watcher, self._sources)
+    def build(self, max_workers: int = 4) -> "DynamicConfig":
+        return DynamicConfig(self._cache, self._parser, self._watcher, self._sources, max_workers=max_workers)
 
     def _add_source(self, source: Source) -> "ConfigBuilder":
         self._sources.append(source)
@@ -103,12 +104,14 @@ class DynamicConfig(Config):
         parser: Parser,
         watcher: Watcher,
         sources: list[Source],
+        max_workers: int = 4,
     ) -> None:
         self._cache = cache
         self._parser = parser
         self._watcher = watcher
         self._sources = sources
         self._handlers: list[OnConfigChangeEvent] = []
+        self._executor = ThreadPoolExecutor(max_workers=max_workers)
         self.log = get_logger(type(self).__name__)
 
     def initialize(self) -> None:
@@ -173,6 +176,12 @@ class DynamicConfig(Config):
         if changes:
             self.log.debug("Configuration changes detected", changes=changes)
             for handler in self._handlers:
-                handler(file_path, changes)
+                self._executor.submit(self._execute_handler, handler, file_path, changes)
         else:
             self.log.debug("No configuration changes detected")
+
+    def _execute_handler(self, handler: OnConfigChangeEvent, file_path: str, changes: dict[str, ConfigChange]) -> None:
+        try:
+            handler(file_path, changes)
+        except Exception as error:
+            self.log.warn("Handler failed to process configuration change", file=file_path, error=error)
