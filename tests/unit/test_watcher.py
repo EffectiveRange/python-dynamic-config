@@ -78,7 +78,7 @@ class TestConfigWatcher(TestCase):
 
         # Then
         self.assertIn(path, watcher._watches)
-        observer.schedule.assert_called_once_with(watcher, path, recursive=True)
+        observer.schedule.assert_called_once_with(watcher, str(Path(path).parent), recursive=False)
 
     def test_watch_duplicate(self):
         # Given
@@ -133,7 +133,7 @@ class TestConfigWatcher(TestCase):
         # Then
         observer.start.assert_called_once()
         for path in watcher._watches:
-            observer.schedule.assert_any_call(watcher, path, recursive=True)
+            observer.schedule.assert_any_call(watcher, str(Path(path).parent), recursive=False)
 
     def test_stop(self):
         # Given
@@ -148,8 +148,8 @@ class TestConfigWatcher(TestCase):
 
         # Then
         observer.stop.assert_called_once()
-        for watch in watcher._watches.values():
-            observer.unschedule.assert_any_call(watch)
+        self.assertFalse(watcher._watches)
+        observer.join.assert_called_once_with()
 
     def test_on_any_event_when_created(self):
         # Given
@@ -163,7 +163,9 @@ class TestConfigWatcher(TestCase):
         event.src_path = "/some/path/config.yaml"
 
         # When
+        watcher.watch(event.src_path)
         watcher.on_any_event(event)
+        watcher.stop()
 
         # Then
         handler.assert_called_once_with(str(event.src_path))
@@ -180,7 +182,9 @@ class TestConfigWatcher(TestCase):
         event.src_path = "/some/path/config.yaml"
 
         # When
+        watcher.watch(event.src_path)
         watcher.on_any_event(event)
+        watcher.stop()
 
         # Then
         handler.assert_called_once_with(str(event.src_path))
@@ -195,9 +199,12 @@ class TestConfigWatcher(TestCase):
         event.event_type = "moved"
         event.is_directory = False
         event.src_path = "/some/path/config.yaml"
+        event.dest_path = "/some/path/other.yaml"
 
         # When
+        watcher.watch(event.src_path)
         watcher.on_any_event(event)
+        watcher.stop()
 
         # Then
         handler.assert_called_once_with(str(event.src_path))
@@ -214,7 +221,9 @@ class TestConfigWatcher(TestCase):
         event.src_path = "/some/path/config.yaml"
 
         # When
+        watcher.watch(event.src_path)
         watcher.on_any_event(event)
+        watcher.stop()
 
         # Then
         handler.assert_called_once_with(str(event.src_path))
@@ -232,6 +241,7 @@ class TestConfigWatcher(TestCase):
 
         # When
         watcher.on_any_event(event)
+        watcher.stop()
 
         # Then
         handler.assert_not_called()
@@ -249,6 +259,7 @@ class TestConfigWatcher(TestCase):
 
         # When
         watcher.on_any_event(event)
+        watcher.stop()
 
         # Then
         handler.assert_not_called()
@@ -265,7 +276,9 @@ class TestConfigWatcher(TestCase):
         event.src_path = "/some/path/config.yaml"
 
         # When
+        watcher.watch(event.src_path)
         watcher.on_any_event(event)
+        watcher.stop()
 
         # Then
         handler.assert_called_once_with(str(event.src_path))

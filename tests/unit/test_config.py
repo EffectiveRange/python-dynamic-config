@@ -208,7 +208,7 @@ class TestDynamicConfig(TestCase):
         config.refresh()
 
         # Then
-        cache.update.assert_called_once_with({"test2": "value2-1", "test4": "value4-2"})
+        cache.replace.assert_called_once_with({"test2": "value2-1", "test4": "value4-2"})
 
     def test_refresh_all(self):
         # Given
@@ -238,7 +238,7 @@ class TestDynamicConfig(TestCase):
         config.refresh(dynamic_only=False)
 
         # Then
-        cache.update.assert_called_once_with(
+        cache.replace.assert_called_once_with(
             {"test1": "value1-1", "test2": "value2-1", "test3": "value3-2", "test4": "value4-2"}
         )
 
@@ -309,6 +309,7 @@ class TestDynamicConfig(TestCase):
         cache = MagicMock(spec=Cache)
         cache.snapshot.return_value.values.side_effect = [
             {"test1": "value1", "test2": "value2", "test3": "value3"},
+            {"test1": "value1", "test2": "value2", "test3": "value3"},
             {"test1": "value1-1", "test2": "value2", "test3": "value3-1"},
         ]
         parser = MagicMock(spec=Parser)
@@ -323,6 +324,7 @@ class TestDynamicConfig(TestCase):
 
         # When
         config._on_config_file_change(file_path)
+        config._executor.shutdown(wait=True)
 
         # Then
         handler.assert_called_once_with(
@@ -337,6 +339,7 @@ class TestDynamicConfig(TestCase):
         # Given
         cache = MagicMock(spec=Cache)
         cache.snapshot.return_value.values.side_effect = [
+            {"test1": "value1", "test2": "value2"},
             {"test1": "value1", "test2": "value2"},
             {"test1": "value1", "test2": "value2"},
         ]
@@ -361,6 +364,7 @@ class TestDynamicConfig(TestCase):
         cache = MagicMock(spec=Cache)
         cache.snapshot.return_value.values.side_effect = [
             {"test1": "value1"},
+            {"test1": "value1"},
             {"test1": "value1-1"},
         ]
         parser = MagicMock(spec=Parser)
@@ -375,6 +379,7 @@ class TestDynamicConfig(TestCase):
 
         # When
         config._on_config_file_change(file_path)
+        config._executor.shutdown(wait=True)
 
         # Then
         handler.assert_called_once_with(file_path, {"test1": ConfigChange("test1", "value1", "value1-1")})

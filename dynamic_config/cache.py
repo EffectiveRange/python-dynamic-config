@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: MIT
 
 from abc import ABC, abstractmethod
+from copy import deepcopy
 from types import MappingProxyType
 from typing import Any, cast
 
@@ -38,11 +39,11 @@ class Cache(ABC):
 class ConfigSnapshot(Snapshot, Namespace):
 
     def __init__(self, values: dict[str, Any]) -> None:
-        object.__setattr__(self, "_values", MappingProxyType(dict(values)))
+        object.__setattr__(self, "_values", MappingProxyType(deepcopy(values)))
 
     def __getattr__(self, name: str) -> Any:
         try:
-            return self._values[name]
+            return deepcopy(self._values[name])
         except KeyError:
             raise AttributeError(name)
 
@@ -55,13 +56,14 @@ class ConfigSnapshot(Snapshot, Namespace):
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, Namespace):
             return NotImplemented
-        return bool(self._values == vars(other))
+        values = other._values if isinstance(other, ConfigSnapshot) else vars(other)
+        return bool(self._values == values)
 
     def __contains__(self, key: object) -> bool:
         return key in self._values
 
     def values(self) -> dict[str, Any]:
-        return dict(self._values)
+        return deepcopy(dict(self._values))
 
 
 class ConfigCache(Cache, Namespace):
@@ -76,12 +78,17 @@ class ConfigCache(Cache, Namespace):
         return getattr(self._get_snapshot(), name)
 
     def __setattr__(self, name: str, value: Any) -> None:
-        raise AttributeError("ConfigCache is read-only; configuration is updated by the update() method")
+        raise AttributeError("ConfigCache is read-only")
+
+    def __delattr__(self, name: str) -> None:
+        raise AttributeError("ConfigCache is read-only")
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, Namespace):
             return NotImplemented
-        return bool(self._get_snapshot()._values == vars(other))
+        if isinstance(other, ConfigCache):
+            other = other._get_snapshot()
+        return self._get_snapshot() == other
 
     def __contains__(self, key: object) -> bool:
         return key in self._get_snapshot()._values

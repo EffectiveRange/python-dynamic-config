@@ -59,6 +59,7 @@ dynamic_int = 5678
             ArgumentSource(parser),
         ]
         config = DynamicConfig(cache=cache, parser=parser, watcher=watcher, sources=sources)
+        self.addCleanup(config.deinitialize)
 
         config.initialize()
 

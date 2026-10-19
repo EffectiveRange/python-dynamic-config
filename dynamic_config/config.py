@@ -5,7 +5,9 @@
 from argparse import Namespace
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
+from copy import deepcopy
 from pathlib import Path
+from threading import Lock, RLock, local
 from context_logger import get_logger
 from watchdog.observers import Observer
 from typing import Any, Protocol
@@ -79,7 +81,7 @@ class ConfigBuilder:
         return self._add_source(FileSource(self._parser, file_path))
 
     def with_directory(self, dir_path: str | Path, pattern: str = "*.conf") -> "ConfigBuilder":
-        self._watcher.watch(str(dir_path))
+        self._watcher.watch(str(dir_path), is_directory=True)
         return self._add_source(DirectorySource(self._parser, dir_path, pattern))
 
     def with_environment(self, prefix: str = "") -> "ConfigBuilder":
@@ -112,19 +114,45 @@ class DynamicConfig(Config):
         self._sources = sources
         self._handlers: list[OnConfigChangeEvent] = []
         self._executor = ThreadPoolExecutor(max_workers=max_workers)
+        self._lock = RLock()
+        self._lifecycle_lock = Lock()
+        self._callback = local()
+        self._closed = False
+        self._initialized = False
         self.log = get_logger(type(self).__name__)
 
     def initialize(self) -> None:
-        self.log.debug("Initializing configuration")
-        self.refresh(dynamic_only=False)
-        self._watcher.register(self._on_config_file_change)
-        self._watcher.start()
+        if getattr(self._callback, "active", False):
+            raise RuntimeError("Initialize configuration outside its change handlers")
+
+        with self._lifecycle_lock:
+            with self._lock:
+                if self._closed:
+                    raise RuntimeError("Configuration has been deinitialized; build a new instance")
+
+                if self._initialized:
+                    return
+
+                self.log.debug("Initializing configuration")
+
+                self.refresh(dynamic_only=False)
+
+                self._watcher.register(self._on_config_file_change)
+
+            try:
+                self._watcher.start()
+            except Exception:
+                self._shutdown()
+                raise
+
+            self._initialized = True
 
     def deinitialize(self) -> None:
-        self.log.debug("De-initializing configuration")
-        self._watcher.deregister(self._on_config_file_change)
-        self._watcher.stop()
-        self._cache.clear()
+        if getattr(self._callback, "active", False):
+            raise RuntimeError("Deinitialize configuration outside its change handlers")
+
+        with self._lifecycle_lock:
+            self._shutdown()
 
     def get(self) -> Namespace:
         return self._cache.get()
@@ -133,55 +161,87 @@ class DynamicConfig(Config):
         return self._cache.snapshot()
 
     def refresh(self, dynamic_only: bool = True) -> None:
-        self.log.debug("Refreshing configuration", dynamic_only=dynamic_only)
+        with self._lock:
+            if self._closed:
+                raise RuntimeError("Configuration has been deinitialized")
 
-        new_config: dict[str, Any] = {}
+            self.log.debug("Refreshing configuration", dynamic_only=dynamic_only)
 
-        for source in self._sources:
-            new_config.update(vars(source.get_config()))
+            new_config: dict[str, Any] = {}
+            for source in self._sources:
+                new_config.update(vars(source.get_config()))
 
-        update: dict[str, Any] = {}
+            if dynamic_only:
+                dynamic = self._parser.get_dynamic_arguments()
+                current = self.snapshot().values()
+                new_config = {key: value for key, value in new_config.items() if key in dynamic}
+                new_config.update({key: value for key, value in current.items() if key not in dynamic})
 
-        if dynamic_only:
-            for key in self._parser.get_dynamic_arguments().keys():
-                if key in new_config:
-                    update[key] = new_config[key]
-        else:
-            for key in new_config:
-                update[key] = new_config[key]
-
-        self._cache.update(update)
+            self._cache.replace(new_config)
 
     def register(self, handler: OnConfigChangeEvent) -> None:
-        if handler not in self._handlers:
-            self._handlers.append(handler)
+        with self._lock:
+            if self._closed:
+                raise RuntimeError("Configuration has been deinitialized")
+
+            if handler not in self._handlers:
+                self._handlers.append(handler)
 
     def deregister(self, handler: OnConfigChangeEvent) -> None:
-        if handler in self._handlers:
-            self._handlers.remove(handler)
+        with self._lock:
+            if handler in self._handlers:
+                self._handlers.remove(handler)
+
+    def _shutdown(self) -> None:
+        with self._lock:
+            if self._closed:
+                return
+
+            self.log.debug("De-initializing configuration")
+
+            self._closed = True
+            self._watcher.deregister(self._on_config_file_change)
+
+        try:
+            self._watcher.stop()
+        finally:
+            self._executor.shutdown(wait=True)
+            with self._lock:
+                self._cache.clear()
 
     def _on_config_file_change(self, file_path: str) -> None:
-        old_config: dict[str, Any] = dict(self.snapshot().values())
+        with self._lock:
+            if self._closed:
+                return
 
-        self.refresh()
+            old_config: dict[str, Any] = self.snapshot().values()
 
-        new_config: dict[str, Any] = dict(self.snapshot().values())
+            self.refresh()
 
-        changes: dict[str, ConfigChange] = {}
-        for key, new_value in new_config.items():
-            old_value = old_config.get(key)
-            if old_value != new_value:
-                changes[key] = ConfigChange(config_key=key, old_value=old_value, new_value=new_value)
+            new_config: dict[str, Any] = self.snapshot().values()
 
-        if changes:
-            self.log.debug("Configuration changes detected", changes=changes)
-            for handler in self._handlers:
-                self._executor.submit(self._execute_handler, handler, file_path, changes)
-        else:
-            self.log.debug("No configuration changes detected")
+            changes: dict[str, ConfigChange] = {}
+            for key in old_config.keys() | new_config.keys():
+                old_value = old_config.get(key)
+                new_value = new_config.get(key)
+
+                if key not in old_config or key not in new_config or old_value != new_value:
+                    changes[key] = ConfigChange(config_key=key, old_value=old_value, new_value=new_value)
+
+            if changes:
+                self.log.debug("Configuration changes detected", changes=changes)
+
+                for handler in self._handlers:
+                    self._executor.submit(self._execute_handler, handler, file_path, deepcopy(changes))
+            else:
+                self.log.debug("No configuration changes detected")
 
     def _execute_handler(self, handler: OnConfigChangeEvent, file_path: str, changes: dict[str, ConfigChange]) -> None:
+        self._callback.active = True
+
         try:
             handler(file_path, changes)
         except Exception as error:
             self.log.warn("Handler failed to process configuration change", file=file_path, error=error)
+        finally:
+            self._callback.active = False

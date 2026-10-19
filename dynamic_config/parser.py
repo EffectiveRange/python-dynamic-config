@@ -7,18 +7,34 @@ from argparse import (
     SUPPRESS,
     _ActionsContainer,
     _ArgumentGroup,
+    _StoreAction,
+    _StoreFalseAction,
+    _StoreTrueAction,
     Action,
+    ArgumentError,
     ArgumentDefaultsHelpFormatter,
     ArgumentParser,
     BooleanOptionalAction,
     Namespace,
 )
 from configparser import ConfigParser
+from copy import copy, deepcopy
 from dataclasses import dataclass
 from io import StringIO
-from typing import Any
+import shlex
+from typing import Any, NoReturn
 
 from context_logger import get_logger
+
+
+class ConfigError(ValueError):
+    """A configuration value cannot be parsed."""
+
+
+class ConfigValueParser(ArgumentParser):
+
+    def error(self, message: str) -> NoReturn:
+        raise ConfigError(message)
 
 
 @dataclass
@@ -69,11 +85,27 @@ class ConfigContainer(Container, _ActionsContainer):
         self._config_args: dict[str, ConfigArgument] = {}
 
     def add_config_argument(self, *args: Any, dynamic: bool = False, **kwargs: Any) -> ConfigArgument:
+        if not args or any(not isinstance(arg, str) or not arg or arg[0] not in self.prefix_chars for arg in args):
+            raise ValueError("Configuration arguments must be named options, not positional arguments")
+
+        action_type = kwargs.get("action", "store")
+        action_class = self._registry_get("action", action_type, action_type)
+        if action_class not in (_StoreAction, _StoreTrueAction, _StoreFalseAction, BooleanOptionalAction):
+            raise ValueError("Configuration arguments support store, store_true, store_false and BooleanOptionalAction")
+
+        nargs = kwargs.get("nargs")
+        if nargs not in (None, "?", "+", "*") and not (isinstance(nargs, int) and nargs > 0):
+            raise ValueError("Unsupported nargs for configuration argument")
+
         default = kwargs.pop("default", None)
+        kwargs["default"] = SUPPRESS
+
         action = self.add_argument(*args, **kwargs)
         action.required = False
+
         argument = ConfigArgument(action, dynamic, default, self)
         self._config_args[action.dest] = argument
+
         return argument
 
     def add_config_group(self, *args: Any, **kwargs: Any) -> "ConfigArgumentGroup":
@@ -133,7 +165,10 @@ class ConfigArgumentParser(Parser, ArgumentParser, ConfigContainer):
                 if section not in config:
                     config[section] = {}
 
-                config[section][argument.action.dest] = str(argument.default)
+                value = argument.default
+                config[section][argument.action.dest] = (
+                    shlex.join(str(item) for item in value) if isinstance(value, (list, tuple)) else str(value)
+                )
 
         with StringIO() as stream:
             config.write(stream)
@@ -145,24 +180,59 @@ class ConfigArgumentParser(Parser, ArgumentParser, ConfigContainer):
         return result
 
     def parse_config(self, config: dict[str, Any]) -> Namespace:
-        args = []
-        config_arguments = list(self.get_config_arguments().values())
+        result = self._regular_defaults()
 
-        for argument in config_arguments:
-            if argument.action.dest in config:
-                value = config[argument.action.dest]
+        for argument in self.get_config_arguments().values():
+            action = argument.action
+            if action.dest in config:
+                setattr(result, action.dest, self._parse_value(action, config[action.dest]))
 
-                if isinstance(argument.action, BooleanOptionalAction):
-                    value = str(value).lower()
+        return result
 
-                    if value in ("true", "yes", "1", "on"):
-                        args.append(argument.action.option_strings[0])
-                    else:
-                        args.append(argument.action.option_strings[1])
-                else:
-                    option = argument.action.option_strings[0]
-                    args.extend([option, value])
+    def _regular_defaults(self) -> Namespace:
+        result = Namespace()
 
-        self.log.debug("Parsing configuration as arguments", config=config, args=args)
+        for action in self._actions:
+            if action.dest not in self._config_args and action.default != SUPPRESS:
+                default = deepcopy(action.default)
 
-        return self.parse_args(args)
+                if isinstance(default, str):
+                    try:
+                        default = self._get_value(action, default)
+                    except ArgumentError as error:
+                        raise ConfigError(str(error)) from error
+
+                setattr(result, action.dest, default)
+
+        return result
+
+    def _parse_value(self, action: Action, value: Any) -> Any:
+        if isinstance(action, (BooleanOptionalAction, _StoreTrueAction, _StoreFalseAction)):
+            normalized = str(value).lower()
+
+            if normalized not in ("true", "yes", "1", "on", "false", "no", "0", "off"):
+                raise ConfigError(f"{action.dest}: invalid boolean value: {value!r}")
+
+            return normalized in ("true", "yes", "1", "on")
+
+        value_parser = ConfigValueParser(add_help=False, prefix_chars=self.prefix_chars)
+        value_action = copy(action)
+        value_action.type = self._registry_get("type", action.type, action.type)
+
+        value_parser._add_action(value_action)
+
+        option = action.option_strings[0]
+
+        if action.nargs in (None, "?"):
+            args = [f"{option}={value}"]
+        else:
+            try:
+                values = shlex.split(value) if isinstance(value, str) else [str(item) for item in value]
+            except (TypeError, ValueError) as error:
+                raise ConfigError(f"{action.dest}: invalid sequence: {value!r}") from error
+
+            args = [option, *values]
+
+        parsed = value_parser.parse_args(args)
+
+        return getattr(parsed, action.dest)
