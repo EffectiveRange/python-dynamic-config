@@ -18,6 +18,7 @@ config = (
     ConfigBuilder(parser)
     .with_defaults()
     .with_file("app.conf")
+    .with_directory("app.conf.d")
     .with_environment("APP_")
     .with_arguments()
     .build()
