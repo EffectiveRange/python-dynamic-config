@@ -128,7 +128,7 @@ class DynamicConfig(Config):
         with self._lifecycle_lock:
             with self._lock:
                 if self._closed:
-                    raise RuntimeError("Configuration has been deinitialized; build a new instance")
+                    raise RuntimeError("Configuration has been de-initialized; build a new instance")
 
                 if self._initialized:
                     return
@@ -136,6 +136,8 @@ class DynamicConfig(Config):
                 self.log.debug("Initializing configuration")
 
                 self.refresh(dynamic_only=False)
+
+                self.log.info("Initial configuration loaded", config=self.snapshot().values())
 
                 self._watcher.register(self._on_config_file_change)
 
@@ -163,7 +165,7 @@ class DynamicConfig(Config):
     def refresh(self, dynamic_only: bool = True) -> None:
         with self._lock:
             if self._closed:
-                raise RuntimeError("Configuration has been deinitialized")
+                raise RuntimeError("Configuration has been de-initialized")
 
             self.log.debug("Refreshing configuration", dynamic_only=dynamic_only)
 
@@ -182,7 +184,7 @@ class DynamicConfig(Config):
     def register(self, handler: OnConfigChangeEvent) -> None:
         with self._lock:
             if self._closed:
-                raise RuntimeError("Configuration has been deinitialized")
+                raise RuntimeError("Configuration has been de-initialized")
 
             if handler not in self._handlers:
                 self._handlers.append(handler)
@@ -229,7 +231,7 @@ class DynamicConfig(Config):
                     changes[key] = ConfigChange(config_key=key, old_value=old_value, new_value=new_value)
 
             if changes:
-                self.log.debug("Configuration changes detected", changes=changes)
+                self.log.info("Configuration changes detected", file=file_path, changes=changes)
 
                 for handler in self._handlers:
                     self._executor.submit(self._execute_handler, handler, file_path, deepcopy(changes))

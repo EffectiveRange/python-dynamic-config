@@ -100,15 +100,15 @@ class ConfigCache(Cache, Namespace):
         return cast(Namespace, getattr(self, self.SNAPSHOT_ATTR))
 
     def update(self, values: dict[str, Any]) -> "Cache":
-        self._log().debug("Updating cache", values=values)
+        self._log().debug("Updating configuration cache", values=values)
         return self._set_snapshot(self._get_snapshot()._values | values)
 
     def replace(self, values: dict[str, Any]) -> "Cache":
-        self._log().debug("Replacing cache", values=values)
+        self._log().debug("Replacing configuration cache", values=values)
         return self._set_snapshot(values)
 
     def clear(self) -> "Cache":
-        self._log().debug("Clearing cache")
+        self._log().debug("Clearing configuration cache")
         return self._set_snapshot({})
 
     def _set_snapshot(self, values: dict[str, Any]) -> "Cache":

@@ -24,8 +24,6 @@ from io import StringIO
 import shlex
 from typing import Any, NoReturn
 
-from context_logger import get_logger
-
 
 class ConfigError(ValueError):
     """A configuration value cannot be parsed."""
@@ -141,7 +139,6 @@ class ConfigArgumentParser(Parser, ArgumentParser, ConfigContainer):
         kwargs.setdefault("formatter_class", ArgumentDefaultsHelpFormatter)
         ArgumentParser.__init__(self, *args, **kwargs)
         ConfigContainer.__init__(self, default_section, *args, **kwargs)
-        self.log = get_logger(type(self).__name__)
 
     def get_defaults(self) -> dict[str, Any]:
         defaults = {}
@@ -175,7 +172,7 @@ class ConfigArgumentParser(Parser, ArgumentParser, ConfigContainer):
             result = stream.getvalue()
 
         if print_to_console:
-            print(result)
+            print(result, end="")
 
         return result
 

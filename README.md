@@ -8,20 +8,43 @@ A Python library for loading configuration into a dynamic cache that is updated 
 
 ```python
 from argparse import BooleanOptionalAction
-from dynamic_config import ConfigArgumentParser, ConfigBuilder
+from pathlib import Path
+from dynamic_config import ConfigArgumentParser, ConfigBuilder, ConfigChange
 
 parser = ConfigArgumentParser()
+
+parser.add_argument("--config-dir", required=True)  # Can only be set as command line argument
 parser.add_config_argument("--port", type=int, default=8080)  # Static after initialization
 parser.add_config_argument("--enabled", action=BooleanOptionalAction, default=True, dynamic=True)
+
+group = parser.add_config_group("security")
+group.add_config_argument("--passphrase")
+group.add_config_argument("--private-key", default="./keys/private.key")
+group.add_config_argument("--public-key", default="./keys/public.key")
+
+group = parser.add_config_group("database")
+group.add_config_argument("--db-host", default="127.0.0.1", dynamic=True)
+group.add_config_argument("--db-port", type=int, default=12345, dynamic=True)
+
+args = parser.parse_args()
+config_dir = Path(args.config_dir)
 
 config = (
     ConfigBuilder(parser)
     .with_defaults()
-    .with_file("app.conf")
+    .with_file(config_dir / "app.conf")
+    .with_directory(config_dir / "app.conf.d")
     .with_environment("APP_")
     .with_arguments()
     .build()
 )
+
+def on_config_change(file_path: str, changes: dict[str, ConfigChange]) -> None:
+    if "db_host" in changes or "db_port" in changes:
+        current = config.snapshot()
+        db_reconnect(current.db_host, current.db_port)  # Application-provided function
+
+config.register(on_config_change)
 
 try:
     config.initialize()
@@ -29,9 +52,13 @@ try:
     live = config.get()
     snapshot = config.snapshot()
     # live.enabled follows future refreshes; snapshot.enabled retains this version.
+
+    run_application()  # Keep the application running while configuration is watched.
 finally:
     config.deinitialize()
 ```
+
+For a runnable version of this example, see the [example launcher](examples/example_from_readme/app.sh).
 
 An example configuration file:
 
@@ -39,6 +66,14 @@ An example configuration file:
 [default]
 port = 8080
 enabled = yes
+
+[security]
+private_key = /etc/app/private.key
+public_key = /etc/app/public.key
+
+[database]
+db_host = 127.0.0.1
+db_port = 12345
 ```
 
 Sources are merged in builder order: later sources override earlier ones. Defaults
