@@ -426,7 +426,7 @@ def test_observer_start_failure_cleans_up_configuration(make_config):
     assert config.snapshot().values() == {}
 
     # When / Then
-    with pytest.raises(RuntimeError, match="deinitialized"):
+    with pytest.raises(RuntimeError, match="de-initialized"):
         config.initialize()
 
 
@@ -470,7 +470,7 @@ def test_shutdown_waits_for_handlers_and_is_terminal(make_config):
 
             # Then
             assert not shutdown.done()
-            with pytest.raises(RuntimeError, match="deinitialized"):
+            with pytest.raises(RuntimeError, match="de-initialized"):
                 config.refresh()
             config._on_config_file_change("late-event.conf")
         finally:
@@ -489,7 +489,7 @@ def test_shutdown_waits_for_handlers_and_is_terminal(make_config):
     config._watcher.stop.assert_called_once()
 
     # When / Then
-    with pytest.raises(RuntimeError, match="deinitialized"):
+    with pytest.raises(RuntimeError, match="de-initialized"):
         config.initialize()
 
 
