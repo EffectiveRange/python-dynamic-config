@@ -9,8 +9,8 @@ maintainers = [
 ]
 dependencies = [
     "watchdog",
-    "python-context-logger @ git+https://github.com/EffectiveRange/python-context-logger.git@latest",
-    "python-common-utility @ git+https://github.com/EffectiveRange/python-common-utility.git@v1.8.0"
+    "python-context-logger@git+https://github.com/EffectiveRange/python-context-logger.git@v1.3.2",
+    "python-common-utility@git+https://github.com/EffectiveRange/python-common-utility.git@v1.8.1"
 ]
 dynamic = ["version"]
 

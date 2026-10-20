@@ -58,7 +58,7 @@ finally:
     config.deinitialize()
 ```
 
-For a runnable version of this example, see the [example launcher](examples/example_from_readme/app.sh).
+For a runnable version of this example, see the [example app](examples/example_app).
 
 An example configuration file:
 
@@ -75,6 +75,13 @@ public_key = /etc/app/public.key
 db_host = 127.0.0.1
 db_port = 12345
 ```
+
+The default configuration from the config argument defaults can be generated with
+`default_config()` as a string or `default_config(print_to_console=True)` to also
+print it to the standard output. This can be useful to provide a default config
+file for reference, generated at build time and packaged with the application.
+
+For a runnable example generator see the [example gen](examples/example_gen).
 
 Sources are merged in builder order: later sources override earlier ones. Defaults
 are included only when `with_defaults()` is used. Options omitted from a source
