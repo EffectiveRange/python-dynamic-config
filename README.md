@@ -6,11 +6,11 @@
 |-------------------------------- | -------: | -------: | -------: | -------: | ------: | --------: |
 | dynamic\_config/\_\_init\_\_.py |        5 |        0 |        0 |        0 |    100% |           |
 | dynamic\_config/cache.py        |       69 |        1 |        6 |        0 |     99% |        84 |
-| dynamic\_config/config.py       |      140 |        2 |       32 |        2 |     98% |  126, 185 |
-| dynamic\_config/parser.py       |      130 |        2 |       40 |        1 |     98% |199-\>205, 202-203 |
+| dynamic\_config/config.py       |      141 |        2 |       32 |        2 |     98% |  126, 187 |
+| dynamic\_config/parser.py       |      128 |        2 |       40 |        1 |     98% |196-\>202, 199-200 |
 | dynamic\_config/source.py       |       64 |        0 |        6 |        0 |    100% |           |
 | dynamic\_config/watcher.py      |      129 |        4 |       42 |        4 |     95% |76, 94, 133, 197 |
-| **TOTAL**                       |  **537** |    **9** |  **126** |    **7** | **98%** |           |
+| **TOTAL**                       |  **536** |    **9** |  **126** |    **7** | **98%** |           |
 
 
 ## Setup coverage badge
