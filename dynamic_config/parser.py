@@ -172,7 +172,7 @@ class ConfigArgumentParser(Parser, ArgumentParser, ConfigContainer):
             result = stream.getvalue()
 
         if print_to_console:
-            print(result)
+            print(result, end="")
 
         return result
 
