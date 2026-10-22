@@ -84,13 +84,15 @@ class TestConfigBuilder(TestCase):
         # Given
         parser = ConfigArgumentParser()
         builder = ConfigBuilder(parser)
+        args = ["--test", "value"]
 
         # When
-        builder = builder.with_arguments()
+        builder = builder.with_arguments(args)
 
         # Then
         self.assertIsInstance(builder, ConfigBuilder)
         self.assertIsInstance(builder._sources[0], ArgumentSource)
+        self.assertEqual(builder._sources[0]._args, args)
 
     def test_build(self):
         # Given
