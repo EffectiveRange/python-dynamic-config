@@ -159,11 +159,9 @@ class ConfigArgumentParser(Parser, ArgumentParser, ConfigContainer):
         defaults = {}
 
         for action in self._actions:
-            if action.dest in self._config_args:
-                if (default := self._config_args[action.dest].default) not in (SUPPRESS, None):
-                    defaults[action.dest] = default
-            elif action.default not in (SUPPRESS, None):
-                defaults[action.dest] = action.default
+            default = self._config_args[action.dest].default if action.dest in self._config_args else action.default
+            if default is not SUPPRESS:
+                defaults[action.dest] = self._convert_default(action, default)
 
         return defaults
 
@@ -205,18 +203,20 @@ class ConfigArgumentParser(Parser, ArgumentParser, ConfigContainer):
         result = Namespace()
 
         for action in self._actions:
-            if action.dest not in self._config_args and action.default != SUPPRESS:
+            if action.dest not in self._config_args and action.default is not SUPPRESS:
                 default = deepcopy(action.default)
-
-                if isinstance(default, str):
-                    try:
-                        default = self._get_value(action, default)
-                    except ArgumentError as error:
-                        raise ConfigError(str(error)) from error
-
-                setattr(result, action.dest, default)
+                setattr(result, action.dest, self._convert_default(action, default))
 
         return result
+
+    def _convert_default(self, action: Action, default: Any) -> Any:
+        if isinstance(default, str):
+            try:
+                return self._get_value(action, default)
+            except ArgumentError as error:
+                raise ConfigError(str(error)) from error
+
+        return default
 
     def _parse_value(self, action: Action, value: Any) -> Any:
         if isinstance(action, (BooleanOptionalAction, _StoreTrueAction, _StoreFalseAction)):

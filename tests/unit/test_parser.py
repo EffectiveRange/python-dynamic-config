@@ -3,7 +3,7 @@ from unittest import TestCase
 
 from context_logger import setup_logging
 
-from dynamic_config import ConfigArgumentParser, ConfigArgument, ConfigArgumentGroup, ConfigContainer
+from dynamic_config import ConfigArgumentParser, ConfigArgument, ConfigArgumentGroup, ConfigContainer, ConfigError
 from tests.utils import TEST_APPLICATION_NAME
 
 
@@ -209,7 +209,8 @@ class TestConfigArgumentParser(TestCase):
         # Then
         self.assertIn("test0", defaults)
         self.assertEqual(defaults["test0"], "test")
-        self.assertNotIn("test1", defaults)
+        self.assertIn("test1", defaults)
+        self.assertIsNone(defaults["test1"])
         self.assertIn("test2", defaults)
         self.assertEqual(defaults["test2"], 1)
         self.assertNotIn("test3", defaults)
@@ -217,6 +218,29 @@ class TestConfigArgumentParser(TestCase):
         self.assertEqual(defaults["test4"], ".")
         self.assertIn("test5", defaults)
         self.assertEqual(defaults["test5"], 1234)
+
+    def test_get_defaults_converts_string_defaults(self):
+        # Given
+        def parse_size(value):
+            return int(value[:-1]) * 1024**3
+
+        parser = ConfigArgumentParser()
+        parser.add_config_argument("--memory", default="4G", type=parse_size)
+
+        # When
+        defaults = parser.get_defaults()
+
+        # Then
+        self.assertEqual(defaults["memory"], 4294967296)
+
+    def test_get_defaults_raises_config_error_for_invalid_string_default(self):
+        # Given
+        parser = ConfigArgumentParser()
+        parser.add_config_argument("--count", default="invalid", type=int)
+
+        # When / Then
+        with self.assertRaises(ConfigError):
+            parser.get_defaults()
 
     def test_default_config_includes_group_sections(self):
         # Given
