@@ -7,8 +7,8 @@ from dynamic_config import ConfigArgumentParser
 def get_parser() -> ConfigArgumentParser:
     parser = ConfigArgumentParser()
 
-    parser.add_argument("--config-dir", required=True)  # Can only be set as command line argument
-    parser.add_config_argument("--port", type=int, default=8080)  # Static after initialization
+    parser.add_argument("--config-dir", required=True)
+    parser.add_config_argument("--port", type=int, default=8080)
     parser.add_config_argument("--enabled", action=BooleanOptionalAction, default=True, dynamic=True)
 
     group = parser.add_config_group("security")

@@ -4,7 +4,15 @@ from unittest import TestCase
 from unittest.mock import MagicMock
 
 from context_logger import setup_logging
-from dynamic_config import Parser, DefaultSource, FileSource, ArgumentSource, DirectorySource, EnvironmentSource
+from dynamic_config import (
+    Parser,
+    ConfigArgumentParser,
+    DefaultSource,
+    FileSource,
+    ArgumentSource,
+    DirectorySource,
+    EnvironmentSource,
+)
 from tests.utils import TEST_APPLICATION_NAME, TEST_RESOURCE_ROOT
 
 
@@ -34,6 +42,33 @@ class TestDefaultSource(TestCase):
         self.assertIsNotNone(config)
         self.assertEqual(config.test1, "value")
         self.assertEqual(config.test2, 1234)
+
+    def test_get_config_preserves_none(self):
+        # Given
+        parser = ConfigArgumentParser()
+        parser.add_config_argument("--image", default=None)
+        source = DefaultSource(parser)
+
+        # When
+        config = source.get_config()
+
+        # Then
+        self.assertIsNone(config.image)
+
+    def test_get_config_converts_string_defaults(self):
+        # Given
+        def parse_size(value):
+            return int(value[:-1]) * 1024**3
+
+        parser = ConfigArgumentParser()
+        parser.add_config_argument("--memory", default="4G", type=parse_size)
+        source = DefaultSource(parser)
+
+        # When
+        config = source.get_config()
+
+        # Then
+        self.assertEqual(config.memory, 4294967296)
 
 
 class TestFileSource(TestCase):
