@@ -94,6 +94,11 @@ sources (including defaults); when no source provides it, the dynamic attribute
 is removed. Static settings retain their initialized values. An explicit
 `refresh(dynamic_only=False)` replaces both static and dynamic settings.
 
+Use `add_mutex_config_group()` to declare configuration arguments that are
+mutually exclusive when parsing command-line arguments. The group's `required`
+option follows argparse behavior; exclusivity is applied to command-line
+parsing, not to values merged from configuration sources.
+
 ## Supported argument declarations
 
 Configuration arguments must be named options, such as `--port`, and support:

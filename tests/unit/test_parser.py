@@ -64,6 +64,16 @@ class TestConfigContainer(TestCase):
         self.assertEqual(group.title, "group")
         self.assertTrue(group in container._action_groups)
 
+    def test_add_mutex_config_group(self):
+        # Given
+        container = ConfigContainer(None, "-", None, "error")
+
+        # When
+        group = container.add_mutex_config_group()
+
+        # Then
+        self.assertTrue(group in container._mutually_exclusive_groups)
+
     def test_get_config_groups(self):
         # Given
         container = ConfigContainer(None, "-", None, "error")
@@ -132,6 +142,54 @@ class TestConfigArgumentParser(TestCase):
         self.assertEqual(args.test1, "value1")
         self.assertEqual(args.test2, 1234)
         self.assertEqual(args.test3, 5678)
+
+    def test_parse_args_rejects_multiple_mutex_config_arguments(self):
+        # Given
+        parser = ConfigArgumentParser()
+        group = parser.add_mutex_config_group()
+        group.add_config_argument("--first")
+        group.add_config_argument("--second")
+
+        # When / Then
+        with self.assertRaises(SystemExit) as error:
+            parser.parse_args(["--first", "one", "--second", "two"])
+
+        self.assertEqual(error.exception.code, 2)
+
+    def test_required_mutex_config_group_requires_command_line_argument(self):
+        # Given
+        parser = ConfigArgumentParser()
+        group = parser.add_mutex_config_group(required=True)
+        group.add_config_argument("--first")
+        group.add_config_argument("--second", required=True)
+
+        # When / Then
+        with self.assertRaises(SystemExit) as error:
+            parser.parse_args([])
+
+        self.assertEqual(error.exception.code, 2)
+        self.assertEqual(parser.parse_args(["--second", "two"]).second, "two")
+
+    def test_mutex_config_arguments_are_included_in_config(self):
+        # Given
+        parser = ConfigArgumentParser(default_section="default")
+        group = parser.add_mutex_config_group()
+        group.add_config_argument("--first", default="one")
+        group.add_config_argument("--second", default="two")
+
+        # When
+        arguments = parser.get_config_arguments()
+        namespace = parser.parse_config({"first": "custom"})
+        defaults_mapping = parser.get_defaults()
+        defaults = parser.default_config()
+
+        # Then
+        self.assertIn("first", arguments)
+        self.assertIn("second", arguments)
+        self.assertEqual(namespace.first, "custom")
+        self.assertFalse(hasattr(namespace, "second"))
+        self.assertEqual(defaults_mapping["second"], "two")
+        self.assertIn("[default]\nfirst = one\nsecond = two", defaults)
 
     def test_get_defaults_includes_group_actions(self):
         # Given
