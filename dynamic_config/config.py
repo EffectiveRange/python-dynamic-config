@@ -87,8 +87,8 @@ class ConfigBuilder:
     def with_environment(self, prefix: str = "") -> "ConfigBuilder":
         return self._add_source(EnvironmentSource(self._parser, prefix))
 
-    def with_arguments(self) -> "ConfigBuilder":
-        return self._add_source(ArgumentSource(self._parser))
+    def with_arguments(self, args: list[str] | None = None) -> "ConfigBuilder":
+        return self._add_source(ArgumentSource(self._parser, args))
 
     def build(self, max_handler_workers: int = 4) -> "DynamicConfig":
         return DynamicConfig(self._cache, self._parser, self._watcher, self._sources, max_workers=max_handler_workers)

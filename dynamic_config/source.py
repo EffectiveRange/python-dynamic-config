@@ -105,11 +105,12 @@ class EnvironmentSource(Source):
 
 class ArgumentSource(Source):
 
-    def __init__(self, parser: ArgumentParser) -> None:
+    def __init__(self, parser: ArgumentParser, args: list[str] | None = None) -> None:
         self._parser = parser
+        self._args = args
         self.log = get_logger(type(self).__name__)
 
     def get_config(self) -> Namespace:
         self.log.debug("Fetching configuration from command-line arguments")
 
-        return self._parser.parse_known_args()[0]
+        return self._parser.parse_known_args(self._args)[0]

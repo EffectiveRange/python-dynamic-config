@@ -58,6 +58,11 @@ finally:
     config.deinitialize()
 ```
 
+For applications that receive command-line arguments through an entry point such as
+`main(argv)`, pass that list to `.with_arguments(argv)` so the same arguments are
+used during initialization and subsequent refreshes. Omitting the list preserves
+the default behavior of parsing `sys.argv`.
+
 For a runnable version of this example, see the [example app](examples/example_app).
 
 An example configuration file:

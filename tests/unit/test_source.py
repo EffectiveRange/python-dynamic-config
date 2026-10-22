@@ -182,3 +182,21 @@ class TestArgumentSource(TestCase):
 
         # Then
         self.assertEqual(config, mock_config)
+        parser.parse_known_args.assert_called_once_with(None)
+
+    def test_get_config_uses_explicit_arguments_on_every_refresh(self):
+        # Given
+        args = ["--test", "value"]
+        parser = MagicMock(spec=ArgumentParser)
+        mock_config = MagicMock(spec=Namespace)
+        parser.parse_known_args.return_value = (mock_config, [])
+        source = ArgumentSource(parser, args)
+
+        # When
+        first_config = source.get_config()
+        second_config = source.get_config()
+
+        # Then
+        self.assertEqual(first_config, mock_config)
+        self.assertEqual(second_config, mock_config)
+        self.assertEqual(parser.parse_known_args.call_args_list, [((args,), {}), ((args,), {})])
