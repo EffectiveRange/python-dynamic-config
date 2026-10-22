@@ -7,6 +7,7 @@ from argparse import (
     SUPPRESS,
     _ActionsContainer,
     _ArgumentGroup,
+    _MutuallyExclusiveGroup,
     _StoreAction,
     _StoreFalseAction,
     _StoreTrueAction,
@@ -97,9 +98,9 @@ class ConfigContainer(Container, _ActionsContainer):
 
         default = kwargs.pop("default", None)
         kwargs["default"] = SUPPRESS
+        kwargs["required"] = False
 
         action = self.add_argument(*args, **kwargs)
-        action.required = False
 
         argument = ConfigArgument(action, dynamic, default, self)
         self._config_args[action.dest] = argument
@@ -109,6 +110,11 @@ class ConfigContainer(Container, _ActionsContainer):
     def add_config_group(self, *args: Any, **kwargs: Any) -> "ConfigArgumentGroup":
         group = ConfigArgumentGroup(self, *args, **kwargs)
         self._action_groups.append(group)
+        return group
+
+    def add_mutex_config_group(self, *, required: bool = False) -> "MutuallyExclusiveConfigGroup":
+        group = MutuallyExclusiveConfigGroup(self, required=required)
+        self._mutually_exclusive_groups.append(group)
         return group
 
     def get_config_groups(self) -> list["ConfigArgumentGroup"]:
@@ -130,6 +136,15 @@ class ConfigArgumentGroup(_ArgumentGroup, ConfigContainer):
         _ArgumentGroup.__init__(self, container, *args, **kwargs)
         ConfigContainer.__init__(self, *args, **kwargs)
         self._config_args = container._config_args
+
+
+class MutuallyExclusiveConfigGroup(_MutuallyExclusiveGroup, ConfigContainer):
+    def __init__(self, container: ConfigContainer, *, required: bool = False) -> None:
+        _MutuallyExclusiveGroup.__init__(self, container, required=required)
+        ConfigContainer.__init__(self)
+        self.title = container.title
+        self._config_args = container._config_args
+        self._mutually_exclusive = True
 
 
 class ConfigArgumentParser(Parser, ArgumentParser, ConfigContainer):
