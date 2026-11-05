@@ -46,7 +46,7 @@ class FileSource(Source):
         return self._parser.parse_config(config)
 
     def _get_file_config(self, path: str | Path) -> dict[str, Any]:
-        self.log.debug("Fetching configuration from file", file=path)
+        self.log.debug("Fetching configuration from file", file=str(path))
 
         file_parser = ConfigParser(interpolation=None)
         file_parser.read(path)
@@ -73,7 +73,7 @@ class DirectorySource(FileSource):
         self._recursive = recursive
 
     def get_config(self) -> Namespace:
-        self.log.debug("Fetching configuration from directory", dir=self._path, pattern=self._pattern)
+        self.log.debug("Fetching configuration from directory", dir=str(self._path), pattern=self._pattern)
 
         config = {}
 

@@ -30,7 +30,7 @@ class Watcher(ABC):
     def deregister(self, handler: OnFileChanged) -> None: ...
 
     @abstractmethod
-    def watch(self, path: str | Path, recursive: bool = True, *, is_directory: bool | None = None) -> None: ...
+    def watch(self, path: str | Path, recursive: bool = True) -> None: ...
 
     @abstractmethod
     def unwatch(self, path: str | Path) -> None: ...
@@ -82,7 +82,7 @@ class FileWatcher(Watcher, FileSystemEventHandler):
             if handler in self._handlers:
                 self._handlers.remove(handler)
 
-    def watch(self, path: str | Path, recursive: bool = True, *, is_directory: bool | None = None) -> None:
+    def watch(self, path: str | Path, recursive: bool = True) -> None:
         self._check_lifecycle_call()
 
         target_path = Path(abspath(path))
@@ -95,15 +95,16 @@ class FileWatcher(Watcher, FileSystemEventHandler):
                 if path_str in self._watches:
                     return
 
-            directory = target_path.is_dir() if is_directory is None else is_directory
-            observed_path = target_path if directory else target_path.parent
+            is_directory = target_path.is_dir()
+            is_recursive = recursive if is_directory else False
 
-            self.log.debug("Start watching path", path=path_str, recursive=recursive)
+            self.log.debug("Start watching path", path=path_str, recursive=is_recursive)
 
-            watch = self._observer.schedule(self, str(observed_path), recursive=recursive if directory else False)
+            observed_path = target_path if is_directory else target_path.parent
+            watch = self._observer.schedule(self, str(observed_path), recursive=is_recursive)
 
             with self._lock:
-                self._watches[path_str] = WatchTarget(watch, directory, recursive)
+                self._watches[path_str] = WatchTarget(watch, is_directory, is_recursive)
 
     def unwatch(self, path: str | Path) -> None:
         self._check_lifecycle_call()
