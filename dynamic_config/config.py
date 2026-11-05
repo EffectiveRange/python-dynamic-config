@@ -81,7 +81,7 @@ class ConfigBuilder:
         return self._add_source(FileSource(self._parser, file_path))
 
     def with_directory(self, dir_path: str | Path, pattern: str = "*.conf") -> "ConfigBuilder":
-        self._watcher.watch(str(dir_path), is_directory=True)
+        self._watcher.watch(str(dir_path))
         return self._add_source(DirectorySource(self._parser, dir_path, pattern))
 
     def with_environment(self, prefix: str = "") -> "ConfigBuilder":
