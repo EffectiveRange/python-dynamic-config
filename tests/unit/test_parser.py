@@ -21,7 +21,7 @@ class TestConfigContainer(TestCase):
         container = ConfigContainer(None, "-", None, "error")
 
         # When
-        argument = container.add_config_argument("--test", dynamic=True)
+        argument = container.add_dynamic_argument("--test")
 
         # Then
         self.assertIsInstance(argument, ConfigArgument)
@@ -33,19 +33,19 @@ class TestConfigContainer(TestCase):
         container = ConfigContainer(None, "-", None, "error")
 
         # When
-        argument = container.add_config_argument("--test", dynamic=False)
+        argument = container.add_static_argument("--test")
 
         # Then
         self.assertIsInstance(argument, ConfigArgument)
         self.assertFalse(argument.dynamic)
         self.assertEqual(container._config_args["test"], argument)
 
-    def test_add_config_argument_default_dynamic(self):
+    def test_add_static_argument_default_static(self):
         # Given
         container = ConfigContainer(None, "-", None, "error")
 
         # When
-        argument = container.add_config_argument("--test")
+        argument = container.add_static_argument("--test")
 
         # Then
         self.assertIsInstance(argument, ConfigArgument)
@@ -90,8 +90,8 @@ class TestConfigContainer(TestCase):
     def test_get_config_arguments(self):
         # Given
         container = ConfigContainer(None, "-", None, "error")
-        arg1 = container.add_config_argument("--test1", dynamic=True)
-        arg2 = container.add_config_argument("--test2", dynamic=False)
+        arg1 = container.add_dynamic_argument("--test1")
+        arg2 = container.add_static_argument("--test2")
 
         # When
         arguments = container.get_config_arguments()
@@ -105,8 +105,8 @@ class TestConfigContainer(TestCase):
     def test_get_dynamic_arguments(self):
         # Given
         container = ConfigContainer(None, "-", None, "error")
-        arg1 = container.add_config_argument("--test1", dynamic=True)
-        container.add_config_argument("--test2", dynamic=False)
+        arg1 = container.add_dynamic_argument("--test1")
+        container.add_static_argument("--test2")
 
         # When
         dynamic_arguments = container.get_dynamic_arguments()
@@ -130,9 +130,9 @@ class TestConfigArgumentParser(TestCase):
         # Given
         parser = ConfigArgumentParser(default_section="default")
         parser.add_argument("--test0", default="test")
-        parser.add_config_argument("--test1", default=None)
+        parser.add_static_argument("--test1", default=None)
         parser.add_argument("--test2", type=int)
-        parser.add_config_argument("--test3", type=int, dynamic=True, default=SUPPRESS)
+        parser.add_dynamic_argument("--test3", type=int, default=SUPPRESS)
 
         # When
         args = parser.parse_args(["--test0", "value0", "--test1", "value1", "--test2", "1234", "--test3", "5678"])
@@ -147,8 +147,8 @@ class TestConfigArgumentParser(TestCase):
         # Given
         parser = ConfigArgumentParser()
         group = parser.add_mutex_config_group()
-        group.add_config_argument("--first")
-        group.add_config_argument("--second")
+        group.add_static_argument("--first")
+        group.add_static_argument("--second")
 
         # When / Then
         with self.assertRaises(SystemExit) as error:
@@ -160,8 +160,8 @@ class TestConfigArgumentParser(TestCase):
         # Given
         parser = ConfigArgumentParser()
         group = parser.add_mutex_config_group(required=True)
-        group.add_config_argument("--first")
-        group.add_config_argument("--second", required=True)
+        group.add_static_argument("--first")
+        group.add_static_argument("--second", required=True)
 
         # When / Then
         with self.assertRaises(SystemExit) as error:
@@ -174,8 +174,8 @@ class TestConfigArgumentParser(TestCase):
         # Given
         parser = ConfigArgumentParser(default_section="default")
         group = parser.add_mutex_config_group()
-        group.add_config_argument("--first", default="one")
-        group.add_config_argument("--second", default="two")
+        group.add_static_argument("--first", default="one")
+        group.add_static_argument("--second", default="two")
 
         # When
         arguments = parser.get_config_arguments()
@@ -196,11 +196,11 @@ class TestConfigArgumentParser(TestCase):
         parser = ConfigArgumentParser(default_section="default")
 
         parser.add_argument("--test0", default="test")
-        parser.add_config_argument("--test1", default=None)
-        parser.add_config_argument("--test2", default=1, type=int)
+        parser.add_static_argument("--test1", default=None)
+        parser.add_static_argument("--test2", default=1, type=int)
         group = parser.add_config_group("group1")
-        group.add_config_argument("--test3", default=SUPPRESS)
-        group.add_config_argument("--test4", default=".", type=str)
+        group.add_static_argument("--test3", default=SUPPRESS)
+        group.add_static_argument("--test4", default=".", type=str)
         group.add_argument("--test5", default=1234, type=int)
 
         # When
@@ -225,7 +225,7 @@ class TestConfigArgumentParser(TestCase):
             return int(value[:-1]) * 1024**3
 
         parser = ConfigArgumentParser()
-        parser.add_config_argument("--memory", default="4G", type=parse_size)
+        parser.add_static_argument("--memory", default="4G", type=parse_size)
 
         # When
         defaults = parser.get_defaults()
@@ -236,7 +236,7 @@ class TestConfigArgumentParser(TestCase):
     def test_get_defaults_raises_config_error_for_invalid_string_default(self):
         # Given
         parser = ConfigArgumentParser()
-        parser.add_config_argument("--count", default="invalid", type=int)
+        parser.add_static_argument("--count", default="invalid", type=int)
 
         # When / Then
         with self.assertRaises(ConfigError):
@@ -247,11 +247,11 @@ class TestConfigArgumentParser(TestCase):
         parser = ConfigArgumentParser(default_section="default")
 
         parser.add_argument("--test0", default="test")
-        parser.add_config_argument("--test1", default="value1")
+        parser.add_static_argument("--test1", default="value1")
         group = parser.add_config_group("group1")
-        group.add_config_argument("--test2", default="value2")
-        group.add_config_argument("--test3", default=SUPPRESS)
-        group.add_config_argument("--test4", default="value4")
+        group.add_static_argument("--test2", default="value2")
+        group.add_static_argument("--test3", default=SUPPRESS)
+        group.add_static_argument("--test4", default="value4")
 
         # When
         defaults = parser.default_config(print_to_console=True)
@@ -274,22 +274,22 @@ test4 = value4
         # Given
         parser = ConfigArgumentParser(default_section="default")
         parser.add_argument("--regular-in-default-group", default="regular_default")
-        parser.add_config_argument("--string-in-default-group", default="value1")
-        parser.add_config_argument("--int-in-default-group", type=int, default=2)
-        parser.add_config_argument("--dynamic", dynamic=True, default="old_dynamic")
-        parser.add_config_argument("--no-default")
-        parser.add_config_argument("--boolean-optional-true", dynamic=True, action=BooleanOptionalAction)
-        parser.add_config_argument("--boolean-optional-false", dynamic=True, action=BooleanOptionalAction)
+        parser.add_static_argument("--string-in-default-group", default="value1")
+        parser.add_static_argument("--int-in-default-group", type=int, default=2)
+        parser.add_dynamic_argument("--dynamic", default="old_dynamic")
+        parser.add_static_argument("--no-default")
+        parser.add_dynamic_argument("--boolean-optional-true", action=BooleanOptionalAction)
+        parser.add_dynamic_argument("--boolean-optional-false", action=BooleanOptionalAction)
 
         argument_group = parser.add_argument_group("arguments")
         argument_group.add_argument("--regular-grouped", default="regular_default")
 
         config_group = parser.add_config_group("config")
         config_group.add_argument("--regular-in-config-group", default="regular_config_default")
-        config_group.add_config_argument("--static-grouped", dynamic=False, default="old_static")
-        config_group.add_config_argument("--dynamic-grouped", dynamic=True, type=int, default=4)
-        config_group.add_config_argument("--omitted-default", default="fallback")
-        config_group.add_config_argument("--omitted-no-default")
+        config_group.add_static_argument("--static-grouped", default="old_static")
+        config_group.add_dynamic_argument("--dynamic-grouped", type=int, default=4)
+        config_group.add_static_argument("--omitted-default", default="fallback")
+        config_group.add_static_argument("--omitted-no-default")
 
         config = {
             "regular_in_default_group": "ignored",
