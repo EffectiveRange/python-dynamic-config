@@ -9,7 +9,7 @@ def test_atomic_replacement_subsequent_edits_and_recreation(tmp_path):
     path = tmp_path / "config.conf"
     path.write_text("[app]\nvalue = original\n")
     parser = ConfigArgumentParser()
-    parser.add_config_argument("--value", dynamic=True)
+    parser.add_dynamic_argument("--value")
     config = ConfigBuilder(parser).with_file(path).build()
     changed = Event()
     expected = ["replacement"]
@@ -73,7 +73,7 @@ def test_invalid_file_retains_last_valid_configuration_and_recovers(tmp_path):
     path = tmp_path / "config.conf"
     path.write_text("[app]\nvalue = 1\n")
     parser = ConfigArgumentParser()
-    parser.add_config_argument("--value", type=int, dynamic=True)
+    parser.add_dynamic_argument("--value", type=int)
     config = ConfigBuilder(parser).with_file(path).build()
     rejected = Event()
     changed = Event()

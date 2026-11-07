@@ -58,7 +58,7 @@ def make_watcher():
 def test_boolean_actions_parse_explicit_values(action, value, expected):
     # Given
     parser = ConfigArgumentParser()
-    parser.add_config_argument("--enabled", action=action)
+    parser.add_static_argument("--enabled", action=action)
 
     # When
     explicit = parser.parse_config({"enabled": value})
@@ -75,7 +75,7 @@ def test_boolean_actions_parse_explicit_values(action, value, expected):
 def test_boolean_actions_reject_typos(action):
     # Given
     parser = ConfigArgumentParser()
-    parser.add_config_argument("--enabled", action=action)
+    parser.add_static_argument("--enabled", action=action)
 
     # When / Then
     with pytest.raises(ConfigError, match="invalid boolean"):
@@ -96,7 +96,7 @@ def test_boolean_actions_reject_typos(action):
 def test_invalid_config_raises_without_exiting(kwargs, value, capsys):
     # Given
     parser = ConfigArgumentParser()
-    parser.add_config_argument("--value", **kwargs)
+    parser.add_static_argument("--value", **kwargs)
 
     # When / Then
     with pytest.raises(ConfigError):
@@ -117,7 +117,7 @@ def test_invalid_config_raises_without_exiting(kwargs, value, capsys):
 def test_scalar_and_sequence_values(nargs, value, expected):
     # Given
     parser = ConfigArgumentParser()
-    parser.add_config_argument("--value", nargs=nargs)
+    parser.add_static_argument("--value", nargs=nargs)
 
     # When
     config = parser.parse_config({"value": value})
@@ -130,7 +130,7 @@ def test_sequence_types_and_registered_types():
     # Given
     parser = ConfigArgumentParser()
     parser.register("type", "number", int)
-    parser.add_config_argument("--values", nargs="+", type="number", choices=[1, 2])
+    parser.add_static_argument("--values", nargs="+", type="number", choices=[1, 2])
 
     # When
     config = parser.parse_config({"values": "1 2"})
@@ -154,7 +154,7 @@ def test_unsupported_declarations_fail_at_registration(args, kwargs):
 
     # When / Then
     with pytest.raises(ValueError):
-        parser.add_config_argument(*args, **kwargs)
+        parser.add_static_argument(*args, **kwargs)
     assert not parser.get_config_arguments()
 
 
@@ -163,7 +163,7 @@ def test_config_parsing_ignores_required_command_line_arguments():
     parser = ConfigArgumentParser()
     parser.add_argument("command")
     parser.add_argument("--required", required=True)
-    parser.add_config_argument("--value", type=int)
+    parser.add_static_argument("--value", type=int)
 
     # When
     config = parser.parse_config({"value": "42"})
@@ -179,7 +179,7 @@ def test_config_parsing_ignores_required_command_line_arguments():
 def test_default_sequence_roundtrip():
     # Given
     parser = ConfigArgumentParser()
-    parser.add_config_argument("--values", nargs="+", default=["one", "two words"])
+    parser.add_static_argument("--values", nargs="+", default=["one", "two words"])
     ini = ConfigParser(interpolation=None)
 
     # When
@@ -193,7 +193,7 @@ def test_default_sequence_roundtrip():
 def test_absent_flags_do_not_override_sources(make_config, monkeypatch):
     # Given
     parser = ConfigArgumentParser()
-    parser.add_config_argument("--enabled", action="store_true", default=False, dynamic=True)
+    parser.add_dynamic_argument("--enabled", action="store_true", default=False)
     source = Mock(spec=Source)
     source.get_config.return_value = parser.parse_config({"enabled": "true"})
     monkeypatch.setattr("sys.argv", ["app"])
@@ -209,8 +209,8 @@ def test_absent_flags_do_not_override_sources(make_config, monkeypatch):
 def test_refresh_removes_missing_dynamic_keys_and_preserves_static(make_config):
     # Given
     parser = ConfigArgumentParser()
-    parser.add_config_argument("--dynamic", dynamic=True)
-    parser.add_config_argument("--static")
+    parser.add_dynamic_argument("--dynamic")
+    parser.add_static_argument("--static")
     source = Mock(spec=Source)
     source.get_config.return_value = Namespace()
     config = make_config(parser, [source], {"dynamic": "old", "static": "fixed"})
@@ -231,7 +231,7 @@ def test_refresh_removes_missing_dynamic_keys_and_preserves_static(make_config):
 def test_removal_falls_back_to_defaults(make_config):
     # Given
     parser = ConfigArgumentParser()
-    parser.add_config_argument("--value", default="fallback", dynamic=True)
+    parser.add_dynamic_argument("--value", default="fallback")
     config = make_config(parser, [DefaultSource(parser)], {"value": "override"})
 
     # When
@@ -256,7 +256,7 @@ def test_full_refresh_replaces_removed_static_values(make_config):
 def test_overlapping_refreshes_are_serialized(make_config):
     # Given
     parser = ConfigArgumentParser()
-    parser.add_config_argument("--value", dynamic=True)
+    parser.add_dynamic_argument("--value")
     old_read = Event()
     release_old = Event()
     new_attempt = Event()
@@ -305,7 +305,7 @@ def test_invalid_reload_logs_preserves_snapshot_and_recovers(make_config, make_w
     path = tmp_path / "config.conf"
     path.write_text("[app]\nvalue = bad\n")
     parser = ConfigArgumentParser()
-    parser.add_config_argument("--value", type=int, dynamic=True)
+    parser.add_dynamic_argument("--value", type=int)
     config = make_config(parser, [FileSource(parser, path)], {"value": 1})
     watcher = make_watcher()
     watcher.log = Mock()
@@ -329,7 +329,7 @@ def test_invalid_reload_logs_preserves_snapshot_and_recovers(make_config, make_w
 def test_overlapping_events_emit_one_coherent_change(make_config):
     # Given
     parser = ConfigArgumentParser()
-    parser.add_config_argument("--value", dynamic=True)
+    parser.add_dynamic_argument("--value")
     first_read = Event()
     release = Event()
     source = Mock(spec=Source)
@@ -365,7 +365,7 @@ def test_overlapping_events_emit_one_coherent_change(make_config):
 def test_change_values_are_isolated_between_handlers(make_config):
     # Given
     parser = ConfigArgumentParser()
-    parser.add_config_argument("--names", dynamic=True)
+    parser.add_dynamic_argument("--names")
     source = Mock(spec=Source)
     source.get_config.return_value = Namespace(names=["new"])
     config = make_config(parser, [source], {"names": ["old"]})
@@ -397,7 +397,7 @@ def test_failed_initialization_is_recoverable(make_config, tmp_path):
     path = tmp_path / "config.conf"
     path.write_text("[app]\nvalue = bad\n")
     parser = ConfigArgumentParser()
-    parser.add_config_argument("--value", type=int)
+    parser.add_static_argument("--value", type=int)
     config = make_config(parser, [FileSource(parser, path)])
 
     # When / Then
@@ -445,7 +445,7 @@ def test_initialization_is_idempotent(make_config):
 def test_shutdown_waits_for_handlers_and_is_terminal(make_config):
     # Given
     parser = ConfigArgumentParser()
-    parser.add_config_argument("--value", dynamic=True)
+    parser.add_dynamic_argument("--value")
     source = Mock(spec=Source)
     source.get_config.return_value = Namespace(value="new")
     config = make_config(parser, [source], {"value": "old"})

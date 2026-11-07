@@ -46,7 +46,7 @@ class TestDefaultSource(TestCase):
     def test_get_config_preserves_none(self):
         # Given
         parser = ConfigArgumentParser()
-        parser.add_config_argument("--image", default=None)
+        parser.add_static_argument("--image", default=None)
         source = DefaultSource(parser)
 
         # When
@@ -61,7 +61,7 @@ class TestDefaultSource(TestCase):
             return int(value[:-1]) * 1024**3
 
         parser = ConfigArgumentParser()
-        parser.add_config_argument("--memory", default="4G", type=parse_size)
+        parser.add_static_argument("--memory", default="4G", type=parse_size)
         source = DefaultSource(parser)
 
         # When

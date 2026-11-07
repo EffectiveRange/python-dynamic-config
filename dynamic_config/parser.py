@@ -50,7 +50,16 @@ class Container(ABC):
     def add_config_argument(self, *args: Any, dynamic: bool = False, **kwargs: Any) -> ConfigArgument: ...
 
     @abstractmethod
+    def add_static_argument(self, *args: Any, **kwargs: Any) -> ConfigArgument: ...
+
+    @abstractmethod
+    def add_dynamic_argument(self, *args: Any, **kwargs: Any) -> ConfigArgument: ...
+
+    @abstractmethod
     def add_config_group(self, *args: Any, **kwargs: Any) -> "ConfigArgumentGroup": ...
+
+    @abstractmethod
+    def add_mutex_config_group(self, *, required: bool = False) -> "MutuallyExclusiveConfigGroup": ...
 
     @abstractmethod
     def get_config_groups(self) -> list["ConfigArgumentGroup"]: ...
@@ -106,6 +115,12 @@ class ConfigContainer(Container, _ActionsContainer):
         self._config_args[action.dest] = argument
 
         return argument
+
+    def add_static_argument(self, *args: Any, **kwargs: Any) -> ConfigArgument:
+        return self.add_config_argument(*args, dynamic=False, **kwargs)
+
+    def add_dynamic_argument(self, *args: Any, **kwargs: Any) -> ConfigArgument:
+        return self.add_config_argument(*args, dynamic=True, **kwargs)
 
     def add_config_group(self, *args: Any, **kwargs: Any) -> "ConfigArgumentGroup":
         group = ConfigArgumentGroup(self, *args, **kwargs)

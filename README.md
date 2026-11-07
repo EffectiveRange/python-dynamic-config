@@ -14,17 +14,17 @@ from dynamic_config import ConfigArgumentParser, ConfigBuilder, ConfigChange
 parser = ConfigArgumentParser()
 
 parser.add_argument("--config-dir", required=True)  # Can only be set as command line argument
-parser.add_config_argument("--port", type=int, default=8080)  # Static after initialization
-parser.add_config_argument("--enabled", action=BooleanOptionalAction, default=True, dynamic=True)
+parser.add_static_argument("--port", type=int, default=8080)  # Static after initialization
+parser.add_dynamic_argument("--enabled", action=BooleanOptionalAction, default=True)
 
 group = parser.add_config_group("security")
-group.add_config_argument("--passphrase")
-group.add_config_argument("--private-key", default="./keys/private.key")
-group.add_config_argument("--public-key", default="./keys/public.key")
+group.add_static_argument("--passphrase")
+group.add_static_argument("--private-key", default="./keys/private.key")
+group.add_static_argument("--public-key", default="./keys/public.key")
 
 group = parser.add_config_group("database")
-group.add_config_argument("--db-host", default="127.0.0.1", dynamic=True)
-group.add_config_argument("--db-port", type=int, default=12345, dynamic=True)
+group.add_dynamic_argument("--db-host", default="127.0.0.1")
+group.add_dynamic_argument("--db-port", type=int, default=12345)
 
 args = parser.parse_args()
 config_dir = Path(args.config_dir)
@@ -93,8 +93,10 @@ are included only when `with_defaults()` is used. Options omitted from a source
 do not override earlier configuration values. Environment keys use the argument's
 destination name in uppercase, for example `APP_ENABLED`.
 
-Only arguments registered with `add_config_argument(..., dynamic=True)` change
-during automatic refreshes. Removing a setting falls back to the remaining
+Arguments registered with [`add_static_argument`](#sym:add_static_argument)
+retain their initialized values. Only arguments registered with
+[`add_dynamic_argument`](#sym:add_dynamic_argument) change during automatic
+refreshes. Removing a setting falls back to the remaining
 sources (including defaults); when no source provides it, the dynamic attribute
 is removed. Static settings retain their initialized values. An explicit
 `refresh(dynamic_only=False)` replaces both static and dynamic settings.
